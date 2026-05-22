@@ -1,0 +1,16 @@
+{
+  "info": {
+    "description": "iotml coco annotations"
+  },
+  "licenses": [],
+  "images": [
+    {
+      "id": 1,
+      "file_name": "10386522775_4f8c616999_m.jpg",
+      "width": 213,
+      "height": 240
+    }
+  ],
+  "annotations": [],
+  "categories": []
+}

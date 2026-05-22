@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IoT ML Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <aside class="sidebar" aria-label="Workflow navigation">
+      <div class="brand">
+        <div class="brand-mark">ML</div>
+        <div>
+          <strong>IoT ML Studio</strong>
+          <span>Local pipeline</span>
+        </div>
+      </div>
+      <nav>
+<button class="nav-item" data-page="dashboard"><span class="ico cyan">■</span><span>Dashboard</span></button>
+
+
+        <button class="nav-item" data-page="devices"><span class="ico indigo">▦</span><span>Devices</span></button>
+        <button class="nav-item" data-page="data"><span class="ico purple">▰</span><span>Data acquisition</span></button>
+        <button class="nav-item" data-page="experiments"><span class="ico green">▦</span><span>Experiments</span></button>
+        <button class="nav-item" data-page="eon"><span class="ico mint">◎</span><span>EON Tuner</span></button>
+        <button class="nav-item" data-page="impulse"><span class="ico red">⌁</span><span>Impulse design</span><span class="chev">⌄</span></button>
+        <div class="subnav">
+          <button class="nav-item sub" data-page="create-impulse"><span class="dot"></span><span>Create impulse</span></button>
+          <button class="nav-item sub" data-page="labeling"><span class="dot"></span><span>Labeling</span></button>
+          <button class="nav-item sub" data-page="image"><span class="dot"></span><span>Image</span></button>
+
+          <button class="nav-item sub" data-page="object-detection"><span class="dot"></span><span>Object detection</span></button>
+          <button class="nav-item sub" data-page="advanced-live"><span class="ico indigo">▧</span><span>Advanced live testing</span></button>
+          <button class="nav-item sub" data-page="retrain"><span class="ico yellow">⌘</span><span>Retrain model</span></button>
+          <button class="nav-item sub" data-page="live"><span class="ico green">⌂</span><span>Live classification</span></button>
+          <button class="nav-item sub active" data-page="testing"><span class="ico pink">▣</span><span>Model testing</span></button>
+          <button class="nav-item sub" data-page="post"><span class="ico cyan">▤</span><span>Post-processing</span></button>
+          <button class="nav-item sub" data-page="deploy"><span class="ico rose">◧</span><span>Deployment</span></button>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">IoT ML workflow</p>
+          <h1 id="page-title">Model testing</h1>
+        </div>
+<div class="top-actions">
+          <span class="chip">Flask local</span>
+          <span class="chip success">Ready</span>
+          <button class="ghost" id="kill-switch" type="button">Kill</button>
+          <button class="ghost" id="refresh-status" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section class="page" id="dashboard">
+        <div class="section-head">
+          <h2>Dashboard</h2>
+          <p>Current generated files and workflow readiness.</p>
+        </div>
+        <div class="status-grid" id="artifact-status"></div>
+      </section>
+
+      <section class="page" id="devices">
+        <div class="section-head">
+          <h2>Configure Your Target Device & Application Budget</h2>
+          <p>Define your target hardware to guide model optimization, compatibility filtering, and deployment generation. Update it anytime.</p>
+        </div>
+
+        <div class="two-col">
+          <div class="card" style="padding:16px;">
+            <h3 style="margin-top:0;">Target Device</h3>
+            <p style="margin-top:0;color:rgba(255,255,255,0.7);">Define your target hardware to guide model optimization and compatibility filtering.</p>
+
+            <form class="action-form" data-action="set-target-device" id="target-device-form">
+              <label>Target Device
+                <select name="target_device" id="target_device">
+{% for name, profile in devices.items() %}
+                    <option value="{{ name }}">{{ profile.display_name if profile.display_name else name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+
+              <label>Processor Family
+                <input id="processor_family" name="processor_family" value="auto" disabled />
+              </label>
+
+              <label>Clock Rate (MHz)
+                <input id="clock_rate_mhz" name="clock_rate_mhz" type="number" min="1" step="1" value="240" />
+              </label>
+
+              <label>Custom Device Name (optional)
+                <input id="custom_device_name" name="custom_device_name" placeholder="e.g., My Board v2" />
+              </label>
+
+              <div style="margin-top:12px;" class="row">
+                <button type="submit">Apply Device Settings</button>
+              </div>
+            </form>
+
+            <div style="margin-top:12px;">
+              <h4>Smart compatibility</h4>
+              <ul>
+                <li>Recommended frameworks and runtimes based on selected device</li>
+                <li>Warnings if model memory/latency budgets are exceeded</li>
+                <li>Deployment/export options dynamically filtered (when wired)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <h3 style="margin-top:0;">Application Budget</h3>
+            <p style="margin-top:0;color:rgba(255,255,255,0.7);">Specify available hardware resources and application constraints for model execution.</p>
+
+            <form class="action-form" data-action="set-application-budget" id="app-budget-form">
+              <label>RAM Available (MB)
+                <input name="ram_mb" id="ram_mb" type="number" min="1" step="1" value="128" />
+              </label>
+
+              <label>ROM / Flash Available (MB)
+                <input name="flash_mb" id="flash_mb" type="number" min="1" step="1" value="1024" />
+              </label>
+
+              <label>Maximum Latency (ms)
+                <input name="max_latency_ms" id="max_latency_ms" type="number" min="1" step="1" value="200" />
+              </label>
+
+              <label>Power Budget (optional)
+                <input name="power_budget" id="power_budget" placeholder="mW or W" />
+              </label>
+
+              <label>Target FPS (for vision applications)
+                <input name="target_fps" id="target_fps" type="number" min="1" step="1" value="10" />
+              </label>
+
+              <label>
+                <input type="checkbox" name="battery_powered" id="battery_powered" /> Battery Powered?
+              </label>
+
+              <label>
+                <input type="checkbox" name="edge_only" id="edge_only" checked /> Offline/Edge-only Execution
+              </label>
+
+              <div style="margin-top:12px;" class="row">
+                <button type="submit">Apply Budget</button>
+              </div>
+            </form>
+
+            <div style="margin-top:12px;">
+              <h4>Estimated impact</h4>
+              <div id="budget-estimates" style="font-size:14px;opacity:0.9;">
+                • RAM usage estimate: —
+                <br/>• Latency estimate: —
+                <br/>• Recommended quantization: —
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="page" id="data">
+        <div class="section-head">
+          <h2>Data acquisition</h2>
+          <p>Split CSV files or class-folder datasets into train and test folders.</p>
+        </div>
+        <form class="action-form" data-action="split-data">
+          <label>Input path<input name="input_path" placeholder="data.csv or dataset_folder" required></label>
+          <label>Output folder<input name="output_dir" value="dataset_split"></label>
+          <label>Target column<input name="target_column" value="target"></label>
+          <label>Test size<input name="test_size" type="number" min="0.05" max="0.8" step="0.05" value="0.2"></label>
+          <button type="submit">Run split</button>
+        </form>
+      </section>
+
+      <section class="page" id="experiments">
+        <div class="section-head">
+          <h2>Experiments</h2>
+          <p>Generate features and train a model from the current dataset.</p>
+        </div>
+        <div class="two-col">
+          <form class="action-form" data-action="generate-features">
+            <h3>Generate features</h3>
+            <label>Data type<select name="data_type"><option>image</option><option>audio</option><option>numerical</option><option>character</option></select></label>
+            <label>Train path<input name="train_path" value="dataset_split/train"></label>
+            <label>Test path<input name="test_path" value="dataset_split/test"></label>
+            <button type="submit">Generate</button>
+          </form>
+          <form class="action-form" data-action="train-model">
+            <h3>Train model</h3>
+            <label>Data type<select name="data_type"><option>image</option><option>numerical</option><option>audio</option><option>character</option></select></label>
+            <label>Model<select name="model_name"><option>YOLO</option><option>Faster R-CNN</option><option>SSD</option><option disabled>Classic feature models</option><option>RandomForest</option><option>LogisticRegression</option><option>SVM</option><option>MLP</option><option>KNN</option></select></label>
+            <label>Detection dataset<input name="dataset_dir" value="dataset_split"></label>
+            <label>Epochs<input name="epochs" type="number" min="1" step="1" value="1"></label>
+            <label>Device<input name="device" value="cpu"></label>
+            <label>YOLO base model<input name="model" value="yolo11n.yaml"></label>
+            <label>Train features<input name="train_features" value="train_features.npy"></label>
+            <label>Train labels<input name="train_labels" value="y_train.npy"></label>
+            <label>Output model<input name="output_model" value="iot_model.pkl"></label>
+            <button type="submit">Train</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="page" id="eon">
+        <div class="section-head"><h2>EON Tuner</h2><p>Pick a target and get low-memory model suggestions.</p></div>
+        <form class="action-form" data-action="eon-tuner">
+          <label>Device<select name="device_name">{% for name in devices.keys() %}<option>{{ name }}</option>{% endfor %}</select></label>
+          <button type="submit">Suggest parameters</button>
+        </form>
+      </section>
+
+      <section class="page" id="impulse">
+        <div class="section-head"><h2>Impulse design</h2><p>Configure preprocessing, feature extraction, and learning block.</p></div>
+        <form class="action-form" data-action="create-impulse">
+          <label>Data type<select name="data_type"><option>image</option><option>audio</option><option>numerical</option><option>character</option></select></label>
+          <label>Input shape<input name="input_shape" value="64x64x1"></label>
+          <label>Learning block<select name="classifier"><option>YOLO</option><option>Faster R-CNN</option><option>SSD</option><option>NeuralNetwork</option></select></label>
+          <label>Output file<input name="output_file" value="impulse_config.json"></label>
+          <button type="submit">Save impulse</button>
+        </form>
+      </section>
+
+      <section class="page" id="create-impulse">
+        <div class="section-head"><h2>Create impulse</h2><p>Save the impulse configuration used by feature generation and training.</p></div>
+        <form class="action-form" data-action="create-impulse">
+          <label>Data type<select name="data_type"><option>image</option><option>audio</option><option>numerical</option><option>character</option></select></label>
+          <label>Input shape<input name="input_shape" value="64x64x1"></label>
+          <label>Learning block<select name="classifier"><option>YOLO</option><option>Faster R-CNN</option><option>SSD</option><option>NeuralNetwork</option></select></label>
+          <label>Output file<input name="output_file" value="impulse_config.json"></label>
+          <button type="submit">Create</button>
+        </form>
+      </section>
+
+      <section class="page" id="labeling">
+        <div class="section-head"><h2>Labeling</h2><p>Manually assign labels to images (creates y_train.npy / y_test.npy deterministically).</p></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom: 16px;">
+          <a class="ghost" href="/labeling?split=train" style="text-decoration:none;">Label train split</a>
+          <a class="ghost" href="/labeling?split=test" style="text-decoration:none;">Label test split</a>
+        </div>
+        <div class="section-head" style="margin-top: 12px;">
+          <h2>Generate features</h2>
+          <p>After labeling, generate image features to train a model.</p>
+        </div>
+        <form class="action-form" data-action="generate-features">
+          <input type="hidden" name="data_type" value="image">
+          <label>Train folder<input name="train_path" value="dataset_split/train"></label>
+          <label>Test folder<input name="test_path" value="dataset_split/test"></label>
+          <button type="submit">Generate image features</button>
+        </form>
+      </section>
+
+      <section class="page" id="image">
+        <div class="section-head"><h2>Image</h2><p>Use object-detection training for image workflows, or extract image features for legacy experiments.</p></div>
+        <form class="action-form" data-action="generate-features">
+          <input type="hidden" name="data_type" value="image">
+          <label>Train folder<input name="train_path" value="dataset_split/train"></label>
+          <label>Test folder<input name="test_path" value="dataset_split/test"></label>
+          <button type="submit">Generate image features</button>
+        </form>
+      </section>
+
+
+      <section class="page" id="object-detection">
+        <div class="section-head"><h2>Object detection</h2><p>Train YOLO, Faster R-CNN, or SSD detectors from a detection dataset.</p></div>
+        <div class="two-col">
+          <form class="action-form" data-action="train-object-detection-yolo">
+            <h3>YOLO</h3>
+            <label>Dataset folder<input name="dataset_dir" value="dataset_split"></label>
+            <label>Base model<input name="model" value="yolo11n.yaml"></label>
+            <label>Epochs<input name="epochs" type="number" min="1" step="1" value="1"></label>
+            <label>Image size<input name="imgsz" type="number" min="64" step="32" value="640"></label>
+            <label>Batch size<input name="batch" type="number" min="1" step="1" value="16"></label>
+            <label>Device<input name="device" value="cpu"></label>
+            <label>Output folder<input name="output_dir" value="runs/detect"></label>
+            <label>Run name<input name="run_name" value="iotml-yolo"></label>
+            <button type="submit">Train YOLO</button>
+          </form>
+
+          <form class="action-form" data-action="train-object-detection-faster-rcnn">
+            <h3>Faster R-CNN</h3>
+            <label>Dataset folder<input name="dataset_dir" value="dataset_split"></label>
+            <label>Labels JSON<input name="labels_path" placeholder="labeling_train.json"></label>
+            <label>Classes incl. background<input name="num_classes" type="number" min="2" step="1" placeholder="auto"></label>
+            <label>Epochs<input name="epochs" type="number" min="1" step="1" value="10"></label>
+            <label>Device<input name="device" value="cpu"></label>
+            <label>Output model<input name="output_model" value="fasterrcnn_detector.pth"></label>
+            <button type="submit">Prepare Faster R-CNN</button>
+          </form>
+
+          <form class="action-form" data-action="train-object-detection-ssd">
+            <h3>SSD</h3>
+            <label>Dataset folder<input name="dataset_dir" value="dataset_split"></label>
+            <label>Labels JSON<input name="labels_path" placeholder="labeling_train.json"></label>
+            <label>Classes incl. background<input name="num_classes" type="number" min="2" step="1" placeholder="auto"></label>
+            <label>Epochs<input name="epochs" type="number" min="1" step="1" value="10"></label>
+            <label>Device<input name="device" value="cpu"></label>
+            <label>Output model<input name="output_model" value="ssd_detector.pth"></label>
+            <button type="submit">Prepare SSD</button>
+          </form>
+
+          <form class="action-form" data-action="post-processing">
+            <h3>NMS</h3>
+            <input type="hidden" name="mode" value="nms">
+            <label>Detection output .npy<input name="output_path" value="model_output.npy"></label>
+            <label>IoU threshold<input name="iou_threshold" type="number" min="0" max="1" step="0.05" value="0.5"></label>
+            <label>Save path<input name="save_path" value="post_processed_output.npy"></label>
+            <button type="submit">Apply NMS</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="page" id="advanced-live">
+        <div class="section-head">
+          <h2>Advanced live testing</h2>
+          <p>Run YOLO, Faster R-CNN, or SSD detection on an uploaded image, local file, or camera frame.</p>
+        </div>
+        <div class="detector-workbench">
+          <form class="action-form" id="advanced-detection-form">
+            <h3>Detector input</h3>
+            <label>Model type
+              <select name="model_type">
+                <option value="yolo">YOLO</option>
+                <option value="faster-rcnn">Faster R-CNN</option>
+                <option value="ssd">SSD</option>
+              </select>
+            </label>
+            <label>Model path<input name="model_path" value="runs/detect/iotml-yolo/weights/best.pt"></label>
+            <label>Image upload<input id="detection-image" name="image" type="file" accept="image/*"></label>
+            <label>Local image path<input name="image_path" placeholder="dataset_split/test/sample.jpg"></label>
+            <label>Confidence<input name="confidence" type="number" min="0" max="1" step="0.05" value="0.25"></label>
+            <label>Device<input name="device" value="cpu"></label>
+            <label>Image size<input name="imgsz" type="number" min="64" step="32" value="640"></label>
+            <label>Classes incl. background<input name="num_classes" type="number" min="2" step="1" value="2"></label>
+            <label class="full-span">Class names<input name="class_names" placeholder="background, helmet, person"></label>
+            <div class="camera-actions full-span">
+              <button class="ghost" id="start-detector-camera" type="button">Use camera</button>
+              <button class="ghost" id="capture-detector-frame" type="button" disabled>Capture frame</button>
+            </div>
+            <button type="submit">Run detection</button>
+          </form>
+
+          <div class="detector-preview">
+            <div class="preview-pane">
+              <div class="preview-head">
+                <h3>Source</h3>
+              </div>
+              <video id="detector-camera" autoplay playsinline muted hidden></video>
+              <canvas id="detector-canvas" hidden></canvas>
+              <img id="detection-source-image" alt="Selected detection source" hidden>
+              <div class="empty-preview">Choose an image or capture a frame.</div>
+            </div>
+
+            <div class="preview-pane">
+              <div class="preview-head">
+                <h3>Detection result</h3>
+                <span id="detection-count">0 detections</span>
+              </div>
+              <img id="detection-result-image" alt="Annotated detection result" hidden>
+              <div class="empty-preview" id="detection-empty-state">Run detection to see bounding boxes.</div>
+              <ul class="detection-list" id="detection-list"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="retrain">
+        <div class="section-head"><h2>Retrain model</h2><p>Fit an existing artifact with new labeled feature data.</p></div>
+        <form class="action-form" data-action="retrain-model">
+          <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+          <label>Train features<input name="train_features" value="train_features.npy"></label>
+          <label>Train labels<input name="train_labels" value="y_train.npy"></label>
+          <label>Output model<input name="output_model" value="iot_model_retrained.pkl"></label>
+          <button type="submit">Retrain</button>
+        </form>
+      </section>
+
+      <section class="page" id="live">
+        <div class="section-head"><h2>Live classification</h2><p>Classify one file, numeric row, or text sample with the trained model.</p></div>
+        <form class="action-form" data-action="live-classification">
+          <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+          <label>Data type<select name="data_type"><option>numerical</option><option>image</option><option>audio</option><option>character</option></select></label>
+          <label>Source<select name="source_type"><option value="numeric">numeric</option><option value="file">file</option><option value="text">text</option></select></label>
+          <label>Numeric row<input name="numeric_row" placeholder="1.2,3.4,5.6"></label>
+          <label>Sample file<input name="sample_path" placeholder="sample.csv, sample.png, sample.wav"></label>
+          <label>Text<input name="sample_text" placeholder="text sample"></label>
+          <button type="submit">Classify</button>
+        </form>
+      </section>
+
+<section class="page visible" id="testing">
+        <div class="section-head"><h2>Model testing</h2><p>Run a detailed test report against the saved model and test labels.</p></div>
+        <form class="action-form" data-action="model-testing">
+          <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+          <label>Test features<input name="test_features" value="test_features.npy"></label>
+          <label>Test labels<input name="test_labels" value="y_test.npy"></label>
+          <label>Report path<input name="report_path" value="model_diagnostics_report.json"></label>
+          <button type="submit">Test model</button>
+        </form>
+
+        <div style="margin-top:12px;">
+          <form class="action-form" data-action="model-outputs">
+            <label>Save raw outputs (.npy)<input name="output_path" value="model_output.npy"></label>
+            <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+            <label>Test features<input name="test_features" value="test_features.npy"></label>
+            <label>Test labels<input name="test_labels" value="y_test.npy"></label>
+            <button type="submit">Create model_output.npy</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="page" id="post">
+        <div class="section-head"><h2>Post-processing</h2><p>Apply thresholding, NMS, or label mapping to model outputs.</p></div>
+        <form class="action-form" data-action="post-processing">
+          <label>Output .npy<input name="output_path" value="model_output.npy"></label>
+          <label>Mode<select name="mode"><option value="threshold">threshold</option><option value="nms">nms</option><option value="label_mapping">label mapping</option></select></label>
+          <label>Threshold<input name="threshold" type="number" min="0" max="1" step="0.05" value="0.5"></label>
+          <label>IoU threshold<input name="iou_threshold" type="number" min="0" max="1" step="0.05" value="0.5"></label>
+          <label>Mapping JSON<input name="mapping_path" value="label_mapping.json"></label>
+          <label>Save path<input name="save_path" value="post_processed_output.npy"></label>
+          <button type="submit">Process</button>
+        </form>
+      </section>
+
+      <section class="page" id="deploy">
+        <div class="section-head"><h2>Deployment</h2><p>Package the model artifact for the selected target. If conversion is unavailable, the app still produces an Edge-Impulse deployable package (.zip) containing the source model.</p></div>
+        <form class="action-form" data-action="deployment">
+          <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+          <label>Target<select name="target_format">{% for format in deployment_formats %}<option>{{ format }}</option>{% endfor %}</select></label>
+          <label>Output folder<input name="output_dir" value="deployment_package"></label>
+          <button type="submit">Deploy</button>
+        </form>
+        <div class="section-head" style="margin-top:12px;">
+          <h3>What you should see after Deploy</h3>
+          <ul>
+            <li>Deployment package output path</li>
+            <li>deployment_metadata.json including selected target + source model metadata</li>
+            <li>If a converted file type already exists (<code>.onnx</code>/<code>.tflite</code>/<code>.keras</code>), it will be copied out too</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="page" id="export-mcu">
+        <div class="section-head"><h2>Export for Microcontroller</h2><p>Generate a microcontroller firmware skeleton + quantized TFLite export (best-effort).</p></div>
+        <form class="action-form" data-action="export-mcu">
+          <label>Model path<input name="model_path" value="iot_model.pkl"></label>
+          <label>Target MCU<select name="mcu">
+            <option value="arduino">Arduino</option>
+            <option value="esp32">ESP32</option>
+            <option value="stm32">STM32</option>
+          </select></label>
+          <label>Quantize INT8<select name="quantize_int8">
+            <option value="true" selected>Yes (INT8)</option>
+            <option value="false">No</option>
+          </select></label>
+          <label>Output folder<input name="output_dir" value="deployment_package"></label>
+          <button type="submit">Export MCU</button>
+        </form>
+        <div class="section-head" style="margin-top:12px;">
+          <h3>Expected output</h3>
+          <ul>
+            <li>deployment_package/mcu_export_<mcu>/export_metadata.json</li>
+            <li>deployment_package/mcu_export_<mcu>/model_int8.tflite (if conversion succeeds)</li>
+            <li>deployment_package/mcu_export_<mcu>/firmware/ (firmware skeleton)</li>
+          </ul>
+        </div>
+      </section>
+
+
+
+      <section class="result-panel" aria-live="polite">
+        <div class="result-head">
+          <h2>Terminal</h2>
+          <span id="terminal-state">Idle</span>
+        </div>
+        <pre id="terminal-output">No job running.</pre>
+      </section>
+
+      <section class="result-panel" aria-live="polite">
+        <div class="result-head">
+          <h2>Run output</h2>
+          <span id="run-state">Ready</span>
+        </div>
+        <pre id="result-output">{}</pre>
+      </section>
+
+      <section class="page" id="deployment-preview">
+        <div class="section-head">
+          <h2>Deployment preview</h2>
+          <p>After clicking <b>Deploy</b>, the JSON response will include the deployment output path and deployment_metadata.json content.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

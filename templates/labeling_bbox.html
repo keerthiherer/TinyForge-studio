@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bounding Box Labeling</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <style>
+      .bbox-workspace { display:flex; gap:16px; align-items:flex-start; }
+      .bbox-left { flex: 1; min-width: 640px; }
+      .bbox-right { width: 360px; }
+      .canvas-wrap {
+        position: relative;
+        width: 100%;
+        height: 520px;
+        border: 1px solid rgba(0,0,0,0.08);
+        background: rgba(15,23,42,0.95);
+        border-radius: 10px;
+        overflow:hidden;
+      }
+      #image { width:100%; height:100%; object-fit: contain; display:block; background: transparent; }
+      #canvas {
+        position:absolute;
+        inset:0;
+      }
+      .top-actions { display:flex; gap:10px; align-items:center; }
+      .toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin: 12px 0; }
+      .toolbar label { min-width: 220px; }
+      .ghost { cursor:pointer; }
+      .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin: 8px 0; }
+      #annotation-list { border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 12px; background: rgba(255,255,255,0.78); }
+      .ann-row button { min-width: 90px; }
+    </style>
+  </head>
+  <body>
+    <main class="workspace" style="max-width: 1240px; margin: 0 auto; padding: 16px;">
+      <header class="topbar" style="margin-bottom: 16px;">
+        <div>
+          <p class="eyebrow">Bounding-box labeling</p>
+          <h1>Annotate images with multi-object boxes</h1>
+        </div>
+        <div class="top-actions">
+          <a class="ghost" href="/" style="text-decoration:none;">Back</a>
+        </div>
+      </header>
+
+      <section class="bbox-workspace">
+        <div class="bbox-left">
+          <div class="toolbar">
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              Split
+              <select id="split-select" class="input input-bordered" onchange="location.search='?project='+encodeURIComponent('{{ project_name }}')+'&split='+encodeURIComponent(this.value);">
+                <option value="train" {% if split_name=='train' %}selected{% endif %}>train</option>
+                <option value="test" {% if split_name=='test' %}selected{% endif %}>test</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              Class
+<input id="class-input" class="input input-bordered" placeholder="e.g. car" style="width:100%" />
+              <button class="btn btn-secondary" type="button" id="class-add-btn">Add</button>
+              <select id="class-select" class="input input-bordered" style="margin-top:8px;"></select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              Project
+              <input id="project" class="input input-bordered" value="{{ project_name }}" disabled />
+            </label>
+          </div>
+
+<div class="canvas-wrap" title="Tip: Draw with mouse, drag to move, handles to resize. Space=pan. Delete=remove selected. Ctrl+S=save. (Draw only inside the visible image area)">
+            <img id="image" src="" alt="image" />
+            <canvas id="canvas"></canvas>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="save-btn" type="button">Save annotations</button>
+            <button class="btn btn-secondary" id="delete-btn" type="button">Delete selected</button>
+            <button class="btn btn-secondary" id="prev-btn" type="button" onclick="window.__bbox_prev?.()">Prev</button>
+            <button class="btn btn-secondary" id="next-btn" type="button" onclick="window.__bbox_next?.()">Next</button>
+          </div>
+
+          <div class="toolbar" style="margin-top:12px;">
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              YOLO Model
+              <select id="yolo-model-select" class="input input-bordered">
+                <option value="yolov8n.pt" selected>yolov8n.pt</option>
+                <option value="yolov8s.pt">yolov8s.pt</option>
+                <option value="custom">custom uploaded model</option>
+              </select>
+            </label>
+
+            <label id="yolo-custom-model-wrap" style="display:none; flex-direction:column; gap:6px;">
+              Custom YOLO model
+              <input id="yolo-custom-model" class="input input-bordered" type="file" accept=".pt,.pth,.onnx" />
+            </label>
+
+            <div style="display:flex; flex-direction:column; gap:6px; justify-content:flex-end;">
+              <button class="btn btn-secondary" id="auto-label-btn" type="button">Automatic labeling</button>
+              <button class="btn btn-primary" id="approve-auto-label-btn" type="button" disabled>Approve proposals</button>
+            </div>
+          </div>
+
+
+          <div class="result-panel" style="padding:12px; margin-top:12px;">
+            <div style="display:flex; gap:12px; align-items:flex-start;">
+              <div style="flex:1;">
+                <div><strong id="fileName">-</strong></div>
+                <div style="margin-top:8px;color:#6b7280;">Progress: <span id="progress">-</span></div>
+                <div style="margin-top:10px;color:#6b7280;" id="msg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="bbox-right">
+          <div class="section-head" style="margin-bottom:12px;">
+            <h2>Annotations</h2>
+            <p>Click Select to edit a box.</p>
+          </div>
+          <div id="annotation-list">Loading…</div>
+
+          <div style="margin-top:14px;">
+            <div class="section-head" style="margin-bottom:8px;">
+              <h3>Shortcuts</h3>
+            </div>
+            <ul style="margin:0; padding-left:18px; color: rgba(52,64,84,0.9); line-height:1.6;">
+              <li>Draw: drag mouse</li>
+              <li>Move: drag box</li>
+              <li>Resize: drag corner handles</li>
+              <li>Pan: hold Space</li>
+              <li>Delete: Delete key</li>
+              <li>Save: Ctrl+S</li>
+              <li>Next/Prev image: ← / →</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      // Provide helpers for prev/next buttons after JS initializes.
+      window.__bbox_prev = null;
+      window.__bbox_next = null;
+    </script>
+    <script>
+      // expose functions to buttons
+      window.__bbox_prev = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); };
+      window.__bbox_next = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); };
+    </script>
+<!-- COCO bbox ui script (kept as labeling_bbox.js) -->
+<script src="{{ url_for('static', filename='labeling_bbox.js') }}"></script>
+  </body>
+</html>
+

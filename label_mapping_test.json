@@ -1,0 +1,12 @@
+{
+  "label_to_idx": {
+    "rose": 0,
+    "rosse": 1,
+    "sun": 2
+  },
+  "idx_to_label": {
+    "0": "rose",
+    "1": "rosse",
+    "2": "sun"
+  }
+}

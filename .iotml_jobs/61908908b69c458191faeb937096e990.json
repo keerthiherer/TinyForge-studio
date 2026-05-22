@@ -1,0 +1,13 @@
+{
+  "id": "61908908b69c458191faeb937096e990",
+  "action": "train-model",
+  "status": "error",
+  "ok": false,
+  "logs": [
+    "seed",
+    "[16:46:10] error> The Flask development server restarted while this job was running, so the in-memory worker was lost. Restart the app with the built-in `python web_app.py` command and retry."
+  ],
+  "artifacts": {},
+  "error": "The Flask development server restarted while this job was running, so the in-memory worker was lost. Restart the app with the built-in `python web_app.py` command and retry.",
+  "finished_at": "2026-05-18T16:46:10"
+}

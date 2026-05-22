@@ -1,0 +1,143 @@
+{
+  "id": "d16d7ac73f3f45c2a924ed760dd42c3e",
+  "action": "eon-tuner",
+  "status": "complete",
+  "ok": true,
+  "logs": [
+    "[16:47:13] job> Queued action: eon-tuner",
+    "[16:47:13] job> Starting action: eon-tuner",
+    "[16:47:13] job> Finished action: eon-tuner"
+  ],
+  "created_at": "2026-05-18T16:47:13",
+  "artifacts": {
+    "train_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+    },
+    "test_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+    },
+    "y_train.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+    },
+    "y_test.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+    },
+    "iot_model.pkl": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+    },
+    "model_diagnostics_report.json": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+    },
+    "model_predictions.csv": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+    },
+    "deployment_package": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+    },
+    "runs": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+    },
+    "fasterrcnn_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+    },
+    "ssd_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+    }
+  },
+  "started_at": "2026-05-18T16:47:13",
+  "result": {
+    "ok": true,
+    "result": {
+      "message": "Tuner suggestions ready.",
+      "device": "esp32",
+      "profile": {
+        "max_ram_mb": 320,
+        "max_flash_mb": 4096,
+        "preferred_model_types": [
+          "cnn",
+          "mlp"
+        ],
+        "quantization": true
+      },
+      "suggestions": {
+        "cnn": {
+          "params": {
+            "num_layers": 1,
+            "filters": 8,
+            "kernel_size": 3,
+            "activation": "relu"
+          },
+          "estimated_ram_mb": 0.01,
+          "fits_ram": true
+        },
+        "mlp": {
+          "params": {
+            "num_layers": 1,
+            "units": 16,
+            "activation": "relu"
+          },
+          "estimated_ram_mb": 0.01,
+          "fits_ram": true
+        }
+      }
+    },
+    "artifacts": {
+      "train_features.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+      },
+      "test_features.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+      },
+      "y_train.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+      },
+      "y_test.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+      },
+      "iot_model.pkl": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+      },
+      "model_diagnostics_report.json": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+      },
+      "model_predictions.csv": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+      },
+      "deployment_package": {
+        "exists": true,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+      },
+      "runs": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+      },
+      "fasterrcnn_detector.pth": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+      },
+      "ssd_detector.pth": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+      }
+    }
+  },
+  "finished_at": "2026-05-18T16:47:13"
+}

@@ -1,0 +1,5 @@
+- [ ] Refactor `object_detection_workflow.py::prepare_yolo_dataset()` to export YOLO TXT from real COCO bbox annotations in `coco_store/<project>/coco_train.json` and `coco_test.json`.
+- [ ] Ensure class name ↔ category_id ↔ YOLO class index mapping is consistent across COCO exporter.
+- [ ] Update `web_app.py` training pipeline (YOLO route) to call COCO-backed exporter and use produced `yolo_auto/` labels.
+- [ ] Implement auto-label pipeline APIs (POST /api/auto-label, etc.) and frontend integration if required.
+- [ ] Re-run smoke tests: compile + quick dataset export generation.
