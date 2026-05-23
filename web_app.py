@@ -974,9 +974,12 @@ def imagelabeler_open():
     return jsonify({"ok": True})
 
 
-@app.post("/api/imagelabeler/import")
+# IMPORTANT: Object-detection import MUST NOT be used by the classification pipeline.
+# We keep a detection-only endpoint and keep the classification workflow fully independent.
+@app.post("/api/object-detection/imagelabeler/import")
 def imagelabeler_import():
-    """Import ImageLabeler detection JSONs into our COCO store.
+    """Import ImageLabeler detection JSONs into the COCO store for object detection only.
+
 
     ImageLabeler outputs per-image JSON files:
       *_detect_annotations.json

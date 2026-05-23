@@ -118,7 +118,10 @@
             <h2>Annotations</h2>
             <p>Click Select to edit a box.</p>
           </div>
+
+          <!-- IMPORTANT: This page is object-detection ONLY. It must not affect classification feature pipelines. -->
           <div id="annotation-list">Loading…</div>
+
 
           <div style="margin-top:14px;">
             <div class="section-head" style="margin-bottom:8px;">
@@ -179,7 +182,7 @@
           try {
             statusEl.textContent = 'Importing labels...';
             importBtn.disabled = true;
-            const res = await fetch(`/api/imagelabeler/import?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
+            const res = await fetch(`/api/object-detection/imagelabeler/import?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
             const data = await res.json();
             if (!data.ok) throw new Error(data.error || 'Import failed');
             statusEl.textContent = 'Import complete: ' + (data.imported || 0) + ' labels';
