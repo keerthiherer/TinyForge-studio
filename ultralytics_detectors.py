@@ -433,9 +433,10 @@ def train_faster_rcnn(
     dataset_dir = _require_dir(dataset_dir, "dataset_dir")
 
     try:
-        import torch
+        torch = __import__("torch")
         from torchvision.models.detection import fasterrcnn_resnet50_fpn
         from torch.utils.data import DataLoader
+
 
         coco_train, coco_test, project_name = _load_coco_detections_for_dataset(dataset_dir)
 
