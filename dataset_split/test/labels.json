@@ -1,0 +1,24 @@
+{
+    "labels": [
+        {
+            "color": [
+                0,
+                254,
+                255
+            ],
+            "id": 2,
+            "label": "rose",
+            "visible": true
+        },
+        {
+            "color": [
+                255,
+                0,
+                180
+            ],
+            "id": 1,
+            "label": "sun",
+            "visible": true
+        }
+    ]
+}
