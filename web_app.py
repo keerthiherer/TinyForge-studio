@@ -1023,7 +1023,11 @@ def imagelabeler_import():
         img_by_file[image_filename] = entry
         return entry
 
-    # Find all ImageLabeler detect JSONs
+    # Find all ImageLabeler per-image JSONs.
+    # Newer workflow saves them directly next to each image, with names like:
+    #   <image_filename>_<any_suffix>_<m|n>_detect_annotations.json
+    # We pair each detect-JSON with its corresponding image by removing the
+    # trailing "_detect_annotations" part.
     json_paths = list(split_root.rglob("*_detect_annotations.json"))
 
     for jp in json_paths:
@@ -1033,19 +1037,27 @@ def imagelabeler_import():
             # Example: vid_01.jpg -> vid_01_detect_annotations.json
             stem = jp.stem  # includes _detect_annotations
             if stem.endswith("_detect_annotations"):
-                image_filename = stem[: -len("_detect_annotations")]
-                # try to infer extension from sibling files
+                # Our detect json filename already contains the image filename
+                # and extra suffix parts from ImageLabeler.
+                # Example:
+                #   14646279002_9cdf97be97_n_detect_annotations.json
+                #   -> image file is 14646279002_9cdf97be97_n.jpg (or .png etc)
+                base = stem[: -len("_detect_annotations")]
+
                 # Prefer common extensions.
                 exts = [".jpg", ".jpeg", ".png", ".bmp", ".webp"]
-                found_ext = None
+                found = None
                 for ext in exts:
-                    if (jp.with_name(image_filename + ext)).exists():
-                        found_ext = ext
+                    # Check in the same directory as the json
+                    cand = jp.with_name(base + ext)
+                    if cand.exists():
+                        found = ext
                         break
-                if found_ext is None:
-                    # fallback: assume .jpg
-                    found_ext = ".jpg"
-                image_filename = str(rel_img.parent / (image_filename + found_ext)).replace("\\", "/")
+                if found is None:
+                    # Fallback: try basename match without extension probing.
+                    found = ".jpg"
+
+                image_filename = str(rel_img.parent / (base + found)).replace("\\", "/")
             else:
                 # unknown pattern: skip
                 continue
