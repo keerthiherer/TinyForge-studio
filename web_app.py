@@ -989,11 +989,24 @@ def imagelabeler_import():
     if payload_split not in {"train", "test"}:
         payload_split = "train"
 
+    # ImageLabeler JSON output is stored next to images inside dataset_split/<train|test>.
+    # Some of your earlier imports may have generated files only under the test split.
+    # To be robust, if the selected split has no *_detect_annotations.json, we also
+    # scan the other split and import from there.
     split_root = _split_dir(payload_split)
-    if not split_root.exists():
+    other_split = "test" if payload_split == "train" else "train"
+    other_root = _split_dir(other_split)
+
+    selected_has_json = split_root.exists() and any(split_root.rglob("*_detect_annotations.json"))
+    if not selected_has_json and other_root.exists():
+        scan_root = other_root
+    else:
+        scan_root = split_root
+
+    if not scan_root.exists():
         return jsonify({"ok": False, "error": "Split directory not found."}), 404
 
-    # Collect coco and ensure basic structure
+    # Collect coco and ensure basic structure (write into the selected split)
     coco = _load_coco_file(payload_project, payload_split)
 
     # Prepare lookup: existing image entries by file_name
@@ -1028,7 +1041,7 @@ def imagelabeler_import():
     #   <image_filename>_<any_suffix>_<m|n>_detect_annotations.json
     # We pair each detect-JSON with its corresponding image by removing the
     # trailing "_detect_annotations" part.
-    json_paths = list(split_root.rglob("*_detect_annotations.json"))
+    json_paths = list(scan_root.rglob("*_detect_annotations.json"))
 
     for jp in json_paths:
         try:
