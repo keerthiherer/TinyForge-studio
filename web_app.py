@@ -933,6 +933,197 @@ def api_get_constraints():
     return jsonify({"ok": True, "constraints": ACTIVE_CONSTRAINTS.get("derived"), "device": ACTIVE_CONSTRAINTS.get("device_profile")})
 
 
+# --- ImageLabeler import/open endpoints ---
+@app.post("/api/imagelabeler/open")
+def imagelabeler_open():
+    """Open ImageLabeler on the local machine.
+
+    NOTE: The exact executable path may differ on your system.
+    If this fails, check the server console output and update IMAGE_LABELER_EXE.
+    """
+    project = str(request.args.get("project", "default")).strip() or "default"
+    split = str(request.args.get("split", "train")).strip() or "train"
+
+    if split not in {"train", "test"}:
+        split = "train"
+
+    image_labeler_dir = ROOT / "ImageLabeler"
+
+    # Try to locate a windows binary under ImageLabeler/bin or ImageLabeler root.
+    # You can adjust this if your clone includes a packaged .exe elsewhere.
+    candidates = [
+        image_labeler_dir / "bin" / "ImageLabeler.exe",
+        image_labeler_dir / "ImageLabeler.exe",
+    ]
+    exe = next((c for c in candidates if c.exists()), None)
+
+    if exe is None:
+        # Fallback: tell frontend how to run manually.
+        return jsonify({
+            "ok": False,
+            "error": "ImageLabeler executable not found. Look under ImageLabeler/bin or ImageLabeler root."
+        }), 404
+
+    import subprocess
+    img_dir = _split_dir(split)
+
+    # Best-effort: open app without file args (app is manual).
+    # If you later wire argv support, pass img_dir as a starting folder.
+    subprocess.Popen([str(exe)])
+
+    return jsonify({"ok": True})
+
+
+@app.post("/api/imagelabeler/import")
+def imagelabeler_import():
+    """Import ImageLabeler detection JSONs into our COCO store.
+
+    ImageLabeler outputs per-image JSON files:
+      *_detect_annotations.json
+    and a labels.json file per directory (labels in that JSON include label ids etc).
+
+    We import all *_detect_annotations.json found under dataset_split/<split>.
+    """
+    payload_project = str(request.args.get("project", "default")).strip() or "default"
+    payload_split = str(request.args.get("split", "train")).strip() or "train"
+    if payload_split not in {"train", "test"}:
+        payload_split = "train"
+
+    split_root = _split_dir(payload_split)
+    if not split_root.exists():
+        return jsonify({"ok": False, "error": "Split directory not found."}), 404
+
+    # Collect coco and ensure basic structure
+    coco = _load_coco_file(payload_project, payload_split)
+
+    # Prepare lookup: existing image entries by file_name
+    img_by_file = {str(img.get("file_name")): img for img in coco.get("images", []) if "file_name" in img}
+
+    # Ensure categories from imported labels; we'll add dynamically.
+    updated = 0
+
+    from PIL import Image as PILImage
+
+    def _ensure_image(image_filename: str) -> dict[str, Any]:
+        nonlocal coco, img_by_file, updated
+        if image_filename in img_by_file:
+            return img_by_file[image_filename]
+        img_path = split_root / Path(image_filename)
+        if not img_path.exists():
+            # try basename-only
+            img_path2 = split_root / Path(image_filename).name
+            if img_path2.exists():
+                img_path = img_path2
+        if not img_path.exists():
+            raise FileNotFoundError(f"Image not found on disk: {image_filename}")
+        w, h = _get_image_size(img_path)
+        img_id = _next_int_id(coco.get("images", []), "id", fallback=1)
+        entry = {"id": img_id, "file_name": image_filename, "width": w, "height": h}
+        coco.setdefault("images", []).append(entry)
+        img_by_file[image_filename] = entry
+        return entry
+
+    # Find all ImageLabeler detect JSONs
+    json_paths = list(split_root.rglob("*_detect_annotations.json"))
+
+    for jp in json_paths:
+        try:
+            rel_img = jp.relative_to(split_root)
+            # ImageLabeler uses the original image filename + suffix.
+            # Example: vid_01.jpg -> vid_01_detect_annotations.json
+            stem = jp.stem  # includes _detect_annotations
+            if stem.endswith("_detect_annotations"):
+                image_filename = stem[: -len("_detect_annotations")]
+                # try to infer extension from sibling files
+                # Prefer common extensions.
+                exts = [".jpg", ".jpeg", ".png", ".bmp", ".webp"]
+                found_ext = None
+                for ext in exts:
+                    if (jp.with_name(image_filename + ext)).exists():
+                        found_ext = ext
+                        break
+                if found_ext is None:
+                    # fallback: assume .jpg
+                    found_ext = ".jpg"
+                image_filename = str(rel_img.parent / (image_filename + found_ext)).replace("\\", "/")
+            else:
+                # unknown pattern: skip
+                continue
+
+            doc = json.loads(jp.read_text(encoding="utf-8"))
+            annotations = doc.get("annotations", [])
+
+            img_entry = _ensure_image(image_filename)
+            img_id = img_entry.get("id")
+            img_w = int(img_entry.get("width"))
+            img_h = int(img_entry.get("height"))
+
+            # Keep an index of existing ann by (image_id, instance id) so edits replace.
+            anns = coco.get("annotations", [])
+            existing_by_key = {}
+            for a in anns:
+                if a.get("image_id") == img_id:
+                    # ImageLabeler uses "id" as instance id
+                    existing_by_key[(a.get("image_id"), a.get("category_id"), a.get("id"))] = a
+
+            for anno in annotations:
+                label = str(anno.get("label", "object")).strip() or "object"
+                instance_id = anno.get("id", None)
+
+                # points: [ [x1,y1], [x2,y2] ]
+                pts = anno.get("points")
+                if not isinstance(pts, list) or len(pts) != 2:
+                    continue
+                p1, p2 = pts[0], pts[1]
+                x1 = float(p1[0]); y1 = float(p1[1])
+                x2 = float(p2[0]); y2 = float(p2[1])
+                left = min(x1, x2); top = min(y1, y2)
+                w = abs(x2 - x1); h = abs(y2 - y1)
+
+                if w <= 1 or h <= 1:
+                    continue
+
+                category_id, _ = _ensure_category(coco, label)
+
+                # Build bbox in COCO top-left xywh
+                bbox = [float(left), float(top), float(w), float(h)]
+
+                # Create a deterministic COCO annotation id by using instance_id when possible.
+                # If instance_id is numeric and unique, we try to map it.
+                new_id = None
+                if instance_id is not None:
+                    try:
+                        new_id = int(instance_id)
+                    except Exception:
+                        new_id = None
+
+                # Determine COCO ann id
+                if new_id is not None:
+                    # Ensure id uniqueness; if conflict, allocate next
+                    id_taken = any(int(a.get("id")) == new_id for a in coco.get("annotations", []))
+                    if id_taken:
+                        new_id = _next_int_id(coco.get("annotations", []), "id", fallback=1)
+                else:
+                    new_id = _next_int_id(coco.get("annotations", []), "id", fallback=1)
+
+                coco.setdefault("annotations", []).append({
+                    "id": int(new_id),
+                    "image_id": int(img_id),
+                    "category_id": int(category_id),
+                    "bbox": bbox,
+                    "iscrowd": 0,
+                })
+                updated += 1
+
+        except Exception:
+            continue
+
+    # Save coco store
+    _save_coco_file(payload_project, payload_split, coco)
+    return jsonify({"ok": True, "imported": updated, "images": len(coco.get("images", []))})
+
+
+
 @app.get("/api/compatible-runtimes")
 def api_compatible_runtimes():
     profile = ACTIVE_CONSTRAINTS.get("device_profile") or _get_active_device_profile()
@@ -1075,15 +1266,19 @@ def labeling_image_static(split: str, filename: str):
 
 @app.get("/labeling")
 def labeling_page():
-    # Backward-compatible route name; new UI uses bounding boxes + COCO.
+    """Launch a manual labeling workflow.
+
+    Current approach: use the local ImageLabeler Qt application.
+    The web UI only provides a "Label with ImageLabeler" button and a
+    status/import action. The heavy bbox interaction is done in the desktop app.
+    """
     project_name = request.args.get("project", "default").strip() or "default"
     split_name = request.args.get("split", "train").strip() or "train"
     if split_name not in {"train", "test"}:
         split_name = "train"
 
-    # Ensure dataset_export-style image folders exist by mirroring existing dataset_split
-    # into the COCO dataset structure on demand.
     return render_template("labeling_bbox.html", split_name=split_name, project_name=project_name)
+
 
 
 

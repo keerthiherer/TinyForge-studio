@@ -81,25 +81,25 @@
           </div>
 
           <div class="toolbar" style="margin-top:12px;">
-            <label style="display:flex; flex-direction:column; gap:6px;">
-              YOLO Model
-              <select id="yolo-model-select" class="input input-bordered">
-                <option value="yolov8n.pt" selected>yolov8n.pt</option>
-                <option value="yolov8s.pt">yolov8s.pt</option>
-                <option value="custom">custom uploaded model</option>
-              </select>
-            </label>
+            <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+              <button class="btn btn-secondary" id="open-imagelabeler-btn" type="button">
+                Label with ImageLabeler
+              </button>
 
-            <label id="yolo-custom-model-wrap" style="display:none; flex-direction:column; gap:6px;">
-              Custom YOLO model
-              <input id="yolo-custom-model" class="input input-bordered" type="file" accept=".pt,.pth,.onnx" />
-            </label>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-primary" id="import-imagelabeler-btn" type="button" disabled>
+                  Import ImageLabeler labels to COCO
+                </button>
 
-            <div style="display:flex; flex-direction:column; gap:6px; justify-content:flex-end;">
-              <button class="btn btn-secondary" id="auto-label-btn" type="button">Automatic labeling</button>
-              <button class="btn btn-primary" id="approve-auto-label-btn" type="button" disabled>Approve proposals</button>
+                <div id="imagelabeler-status" style="color:#6b7280; align-self:center;">Ready.</div>
+              </div>
+
+              <p style="margin:0; color:#6b7280; font-size:12px;">
+                This opens the local Qt ImageLabeler app. After labeling, click “Import…” to save labels into COCO.
+              </p>
             </div>
           </div>
+
 
 
           <div class="result-panel" style="padding:12px; margin-top:12px;">
@@ -148,8 +148,51 @@
       window.__bbox_prev = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); };
       window.__bbox_next = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); };
     </script>
-<!-- COCO bbox ui script (kept as labeling_bbox.js) -->
-<script src="{{ url_for('static', filename='labeling_bbox.js') }}"></script>
+
+    <script>
+      window.addEventListener('load', () => {
+        const splitSelect = document.getElementById('split-select');
+        const projectInput = document.getElementById('project');
+        const openBtn = document.getElementById('open-imagelabeler-btn');
+        const importBtn = document.getElementById('import-imagelabeler-btn');
+        const statusEl = document.getElementById('imagelabeler-status');
+
+        const project = (projectInput?.value || 'default').trim();
+        const split = (splitSelect?.value || 'train').trim();
+
+        openBtn?.addEventListener('click', async () => {
+          try {
+            statusEl.textContent = 'Launching ImageLabeler...';
+            importBtn.disabled = true;
+            const res = await fetch(`/api/imagelabeler/open?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || 'Failed to open ImageLabeler');
+            statusEl.textContent = 'ImageLabeler opened. Label and then click Import.';
+            importBtn.disabled = false;
+          } catch (e) {
+            statusEl.textContent = 'Error: ' + (e?.message || String(e));
+            importBtn.disabled = true;
+          }
+        });
+
+        importBtn?.addEventListener('click', async () => {
+          try {
+            statusEl.textContent = 'Importing labels...';
+            importBtn.disabled = true;
+            const res = await fetch(`/api/imagelabeler/import?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || 'Import failed');
+            statusEl.textContent = 'Import complete: ' + (data.imported || 0) + ' labels';
+          } catch (e) {
+            statusEl.textContent = 'Error: ' + (e?.message || String(e));
+          } finally {
+            importBtn.disabled = false;
+          }
+        });
+      });
+    </script>
+
   </body>
 </html>
+
 
