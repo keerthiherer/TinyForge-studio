@@ -283,33 +283,23 @@
           <form class="action-form" data-action="train-object-detection-faster-rcnn">
             <h3>Faster R-CNN</h3>
             <label>Dataset folder<input name="dataset_dir" value="dataset_split"></label>
-            <label>Labels JSON<input name="labels_path" placeholder="labeling_train.json"></label>
-            <label>Classes incl. background<input name="num_classes" type="number" min="2" step="1" placeholder="auto"></label>
             <label>Epochs<input name="epochs" type="number" min="1" step="1" value="10"></label>
             <label>Device<input name="device" value="cpu"></label>
             <label>Output model<input name="output_model" value="fasterrcnn_detector.pth"></label>
-            <button type="submit">Prepare Faster R-CNN</button>
+            <button type="submit">Train Faster R-CNN</button>
           </form>
 
           <form class="action-form" data-action="train-object-detection-ssd">
             <h3>SSD</h3>
             <label>Dataset folder<input name="dataset_dir" value="dataset_split"></label>
-            <label>Labels JSON<input name="labels_path" placeholder="labeling_train.json"></label>
-            <label>Classes incl. background<input name="num_classes" type="number" min="2" step="1" placeholder="auto"></label>
             <label>Epochs<input name="epochs" type="number" min="1" step="1" value="10"></label>
             <label>Device<input name="device" value="cpu"></label>
             <label>Output model<input name="output_model" value="ssd_detector.pth"></label>
-            <button type="submit">Prepare SSD</button>
+            <button type="submit">Train SSD</button>
           </form>
 
-          <form class="action-form" data-action="post-processing">
-            <h3>NMS</h3>
-            <input type="hidden" name="mode" value="nms">
-            <label>Detection output .npy<input name="output_path" value="model_output.npy"></label>
-            <label>IoU threshold<input name="iou_threshold" type="number" min="0" max="1" step="0.05" value="0.5"></label>
-            <label>Save path<input name="save_path" value="post_processed_output.npy"></label>
-            <button type="submit">Apply NMS</button>
-          </form>
+
+
         </div>
       </section>
 
