@@ -359,6 +359,27 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
                 continue
             self.anns_by_image_id.setdefault(img_id, []).append(ann)
 
+        # Normalize COCO category_id -> contiguous label ids for torchvision.
+        # torchvision detection models expect labels in [0, num_classes-1]
+        # where labels are foreground classes only (background is implicit).
+        cats = coco.get("categories", []) or []
+        cat_ids = []
+        for c in cats:
+            try:
+                cat_ids.append(int(c.get("id")))
+            except Exception:
+                pass
+        # Fallback: infer unique ids from annotations.
+        if not cat_ids:
+            for ann in anns:
+                try:
+                    cat_ids.append(int(ann.get("category_id")))
+                except Exception:
+                    continue
+            cat_ids = sorted(set(cat_ids))
+
+        self.category_id_to_label: dict[int, int] = {cid: i for i, cid in enumerate(sorted(set(cat_ids)))}
+
     def __len__(self) -> int:
         return len(self.images)
 
@@ -391,10 +412,8 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
             # torchvision expects boxes in xyxy
             boxes.append([x, y, x + w, y + h])
             cid = int(ann.get("category_id"))
-            # torchvision detection expects labels in [0, num_classes-1]
-            if cid < 0:
-                cid = 0
-            labels.append(cid)
+            # Map COCO category_id -> contiguous torchvision label id
+            labels.append(int(self.category_id_to_label.get(cid, 0)))
             areas.append(float(w * h))
             iscrowd.append(int(ann.get("iscrowd", 0)))
 
