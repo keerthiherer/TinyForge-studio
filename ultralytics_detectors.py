@@ -394,11 +394,12 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
             areas.append(float(w * h))
             iscrowd.append(int(ann.get("iscrowd", 0)))
 
-        boxes_t = torch.tensor(boxes, dtype=torch.float32)
-        labels_t = torch.tensor(labels, dtype=torch.int64)
-        image_id_t = torch.tensor([img_id], dtype=torch.int64)
-        areas_t = torch.tensor(areas, dtype=torch.float32)
-        iscrowd_t = torch.tensor(iscrowd, dtype=torch.int64)
+        t = __import__("torch")
+        boxes_t = t.tensor(boxes, dtype=t.float32)
+        labels_t = t.tensor(labels, dtype=t.int64)
+        image_id_t = t.tensor([img_id], dtype=t.int64)
+        areas_t = t.tensor(areas, dtype=t.float32)
+        iscrowd_t = t.tensor(iscrowd, dtype=t.int64)
 
         target: dict[str, Any] = {
             "boxes": boxes_t,
