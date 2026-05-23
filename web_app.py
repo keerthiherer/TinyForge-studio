@@ -1334,18 +1334,25 @@ def labeling_image_static(split: str, filename: str):
 
 @app.get("/labeling")
 def labeling_page():
-    """Launch a manual labeling workflow.
-
-    Current approach: use the local ImageLabeler Qt application.
-    The web UI only provides a "Label with ImageLabeler" button and a
-    status/import action. The heavy bbox interaction is done in the desktop app.
-    """
+    """Classification labeling page (label-name only)."""
     project_name = request.args.get("project", "default").strip() or "default"
     split_name = request.args.get("split", "train").strip() or "train"
     if split_name not in {"train", "test"}:
         split_name = "train"
 
     return render_template("labeling_bbox.html", split_name=split_name, project_name=project_name)
+
+
+@app.get("/labeling/detection")
+def detection_labeling_page():
+    """Object detection labeling page with ImageLabeler COCO import and model prep."""
+    project_name = request.args.get("project", "default").strip() or "default"
+    split_name = request.args.get("split", "train").strip() or "train"
+    if split_name not in {"train", "test"}:
+        split_name = "train"
+
+    return render_template("detection_labeling.html", split_name=split_name, project_name=project_name)
+
 
 
 

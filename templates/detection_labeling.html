@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Object Detection Labeling</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <style>
+      .tabs { display:flex; gap:8px; margin-bottom: 12px; flex-wrap:wrap; }
+      .tab-btn { border:1px solid #e5e7eb; background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; }
+      .tab-btn.active { border-color:#111827; background:#111827; color:#fff; }
+      .panel { display:none; }
+      .panel.active { display:block; }
+      .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .box { border:1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px; background: rgba(255,255,255,0.8); }
+      .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+      .muted { color:#6b7280; font-size: 13px; margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <main class="workspace" style="max-width: 1100px; margin: 0 auto; padding: 16px;">
+      <header class="topbar" style="margin-bottom: 16px;">
+        <div>
+          <p class="eyebrow">Object detection labeling</p>
+          <h1>ImageLabeler (COCO) + Train (YOLO / Faster R-CNN / SSD)</h1>
+        </div>
+        <div class="top-actions">
+          <a class="ghost" href="/" style="text-decoration:none;">Back</a>
+        </div>
+      </header>
+
+      <section class="tabs">
+        <button class="tab-btn active" data-tab="label-yolo" onclick="switchTab('label-yolo')">YOLO labeling</button>
+        <button class="tab-btn" data-tab="label-rcnn" onclick="switchTab('label-rcnn')">Faster R-CNN labeling</button>
+        <button class="tab-btn" data-tab="label-ssd" onclick="switchTab('label-ssd')">SSD labeling</button>
+      </section>
+
+      <section class="panel active" id="panel-label-yolo">
+        <div class="grid">
+          <div class="box">
+            <h2 style="margin-top:0;">1) Open ImageLabeler</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Split
+                <select id="split" class="input input-bordered" onchange="refreshProjectSplit()">
+                  <option value="train" {% if split_name=='train' %}selected{% endif %}>train</option>
+                  <option value="test" {% if split_name=='test' %}selected{% endif %}>test</option>
+                </select>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Project
+                <input id="project" class="input input-bordered" value="{{ project_name }}" />
+              </label>
+            </div>
+            <div class="muted">ImageLabeler edits the dataset_split/<i>split</i> folder and produces *_detect_annotations.json files.</div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="openImageLabeler('yolo')">Open ImageLabeler</button>
+              <button class="btn btn-secondary" onclick="importToCoco('yolo')">Import to COCO</button>
+            </div>
+            <div class="muted" id="yoloStatus"></div>
+          </div>
+
+          <div class="box">
+            <h2 style="margin-top:0;">2) Train YOLO</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Dataset folder
+                <input id="dataset_dir_yolo" class="input input-bordered" value="dataset_split" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Run name
+                <input id="run_name_yolo" class="input input-bordered" value="iotml-yolo" />
+              </label>
+            </div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="train('train-object-detection-yolo')">Train YOLO</button>
+            </div>
+            <div class="muted" id="yoloTrainStatus"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-label-rcnn">
+        <div class="grid">
+          <div class="box">
+            <h2 style="margin-top:0;">1) Open ImageLabeler</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Split
+                <select id="split2" class="input input-bordered" onchange="refreshProjectSplit()">
+                  <option value="train" {% if split_name=='train' %}selected{% endif %}>train</option>
+                  <option value="test" {% if split_name=='test' %}selected{% endif %}>test</option>
+                </select>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Project
+                <input id="project2" class="input input-bordered" value="{{ project_name }}" />
+              </label>
+            </div>
+            <div class="muted">Produces COCO annotations at coco_store/<i>project</i>/coco_<i>split</i>.json</div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="openImageLabeler('rcnn')">Open ImageLabeler</button>
+              <button class="btn btn-secondary" onclick="importToCoco('rcnn')">Import to COCO</button>
+            </div>
+            <div class="muted" id="rcnnStatus"></div>
+          </div>
+
+          <div class="box">
+            <h2 style="margin-top:0;">2) Prepare Faster R-CNN</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Dataset folder
+                <input id="dataset_dir_rcnn" class="input input-bordered" value="dataset_split" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Output model
+                <input id="output_model_rcnn" class="input input-bordered" value="fasterrcnn_detector.pth" />
+              </label>
+            </div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="train('train-object-detection-faster-rcnn')">Prepare Faster R-CNN</button>
+            </div>
+            <div class="muted" id="rcnnTrainStatus"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-label-ssd">
+        <div class="grid">
+          <div class="box">
+            <h2 style="margin-top:0;">1) Open ImageLabeler</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Split
+                <select id="split3" class="input input-bordered" onchange="refreshProjectSplit()">
+                  <option value="train" {% if split_name=='train' %}selected{% endif %}>train</option>
+                  <option value="test" {% if split_name=='test' %}selected{% endif %}>test</option>
+                </select>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Project
+                <input id="project3" class="input input-bordered" value="{{ project_name }}" />
+              </label>
+            </div>
+            <div class="muted">Produces COCO annotations for SSD training.</div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="openImageLabeler('ssd')">Open ImageLabeler</button>
+              <button class="btn btn-secondary" onclick="importToCoco('ssd')">Import to COCO</button>
+            </div>
+            <div class="muted" id="ssdStatus"></div>
+          </div>
+
+          <div class="box">
+            <h2 style="margin-top:0;">2) Prepare SSD</h2>
+            <div class="row">
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Dataset folder
+                <input id="dataset_dir_ssd" class="input input-bordered" value="dataset_split" />
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px;">
+                Output model
+                <input id="output_model_ssd" class="input input-bordered" value="ssd_detector.pth" />
+              </label>
+            </div>
+            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="train('train-object-detection-ssd')">Prepare SSD</button>
+            </div>
+            <div class="muted" id="ssdTrainStatus"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      function switchTab(tabKey){
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const panelId = 'panel-' + tabKey;
+        document.getElementById(panelId).classList.add('active');
+        document.querySelector(`.tab-btn[data-tab='${tabKey}']`).classList.add('active');
+      }
+
+      function getSplitProjectFor(kind){
+        if(kind==='yolo') return { split: document.getElementById('split').value, project: document.getElementById('project').value };
+        if(kind==='rcnn') return { split: document.getElementById('split2').value, project: document.getElementById('project2').value };
+        return { split: document.getElementById('split3').value, project: document.getElementById('project3').value };
+      }
+
+      async function apiPostJson(url, body){
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) });
+        const data = await res.json();
+        return { ok: res.ok, data };
+      }
+
+      async function openImageLabeler(kind){
+        const { split, project } = getSplitProjectFor(kind);
+        const url = `/api/imagelabeler/open?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`;
+        const res = await fetch(url, { method:'POST' });
+        const data = await res.json();
+        const box = kind==='yolo' ? 'yoloStatus' : (kind==='rcnn' ? 'rcnnStatus' : 'ssdStatus');
+        document.getElementById(box).textContent = data.ok ? 'ImageLabeler opened.' : ('Open failed: ' + (data.error||'unknown'));
+      }
+
+      async function importToCoco(kind){
+        const { split, project } = getSplitProjectFor(kind);
+        const url = `/api/imagelabeler/import?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`;
+        const res = await fetch(url, { method:'POST' });
+        const data = await res.json();
+        const box = kind==='yolo' ? 'yoloStatus' : (kind==='rcnn' ? 'rcnnStatus' : 'ssdStatus');
+        document.getElementById(box).textContent = data.ok ? (`Imported ${data.imported} anns.`) : ('Import failed: ' + (data.error||'unknown'));
+      }
+
+      async function train(action){
+        // Use /api/run/<action> so it reuses ACTION_HANDLERS.
+        const form = new FormData();
+        if(action==='train-object-detection-yolo'){
+          form.set('dataset_dir', document.getElementById('dataset_dir_yolo').value);
+          form.set('run_name', document.getElementById('run_name_yolo').value);
+        } else if(action==='train-object-detection-faster-rcnn'){
+          form.set('dataset_dir', document.getElementById('dataset_dir_rcnn').value);
+          form.set('output_model', document.getElementById('output_model_rcnn').value);
+          // labels_path is optional in backend; leave blank.
+        } else if(action==='train-object-detection-ssd'){
+          form.set('dataset_dir', document.getElementById('dataset_dir_ssd').value);
+          form.set('output_model', document.getElementById('output_model_ssd').value);
+        }
+
+        const res = await fetch(`/api/run/${action}`, { method:'POST', body: form });
+        const data = await res.json();
+
+        const box = action==='train-object-detection-yolo' ? 'yoloTrainStatus' : (action==='train-object-detection-faster-rcnn' ? 'rcnnTrainStatus' : 'ssdTrainStatus');
+        document.getElementById(box).textContent = data.ok ? 'Training/prep started/finished. See terminal logs.' : ('Failed: ' + (data.error||'unknown'));
+      }
+
+      function refreshProjectSplit(){ /* placeholder for future sync */ }
+    </script>
+  </body>
+</html>
+
