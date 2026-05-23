@@ -3,138 +3,161 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bounding Box Labeling</title>
+    <title>Manual Labeling</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-    <style>
-      .bbox-workspace { display:flex; gap:16px; align-items:flex-start; }
-      .bbox-left { flex: 1; min-width: 640px; }
-      .bbox-right { width: 360px; }
-      .canvas-wrap {
-        position: relative;
-        width: 100%;
-        height: 520px;
-        border: 1px solid rgba(0,0,0,0.08);
-        background: rgba(15,23,42,0.95);
-        border-radius: 10px;
-        overflow:hidden;
-      }
-      #image { width:100%; height:100%; object-fit: contain; display:block; background: transparent; }
-      #canvas {
-        position:absolute;
-        inset:0;
-      }
-      .top-actions { display:flex; gap:10px; align-items:center; }
-      .toolbar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin: 12px 0; }
-      .toolbar label { min-width: 220px; }
-      .ghost { cursor:pointer; }
-      .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin: 8px 0; }
-      #annotation-list { border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 12px; background: rgba(255,255,255,0.78); }
-      .ann-row button { min-width: 90px; }
-    </style>
   </head>
   <body>
-    <main class="workspace" style="max-width: 1240px; margin: 0 auto; padding: 16px;">
+    <main class="workspace" style="max-width: 980px; margin: 0 auto; padding: 16px;">
       <header class="topbar" style="margin-bottom: 16px;">
         <div>
-          <p class="eyebrow">Bounding-box labeling</p>
-          <h1>Annotate images with multi-object boxes</h1>
+          <p class="eyebrow">Manual labeling</p>
+          <h1>Label images</h1>
         </div>
         <div class="top-actions">
           <a class="ghost" href="/" style="text-decoration:none;">Back</a>
         </div>
       </header>
 
-      <section class="bbox-workspace">
-        <div class="bbox-left">
-          <div class="toolbar">
+      <section style="display:flex; gap:16px; align-items:flex-start;">
+        <div style="flex: 1; min-width: 520px;">
+          <div class="section-head" style="margin-bottom: 12px;">
+            <h2>Queue</h2>
+            <p>Pick a label and click Save. Labels are stored locally as JSON.</p>
+          </div>
+
+          <div style="display:flex; gap:12px; align-items:center; margin-bottom: 10px;">
             <label style="display:flex; flex-direction:column; gap:6px;">
               Split
-              <select id="split-select" class="input input-bordered" onchange="location.search='?project='+encodeURIComponent('{{ project_name }}')+'&split='+encodeURIComponent(this.value);">
+              <select id="split" class="input input-bordered" onchange="location.search = '?split=' + this.value">
                 <option value="train" {% if split_name=='train' %}selected{% endif %}>train</option>
                 <option value="test" {% if split_name=='test' %}selected{% endif %}>test</option>
               </select>
             </label>
 
             <label style="display:flex; flex-direction:column; gap:6px;">
-              Class
-<input id="class-input" class="input input-bordered" placeholder="e.g. car" style="width:100%" />
-              <button class="btn btn-secondary" type="button" id="class-add-btn">Add</button>
-              <select id="class-select" class="input input-bordered" style="margin-top:8px;"></select>
-            </label>
-
-            <label style="display:flex; flex-direction:column; gap:6px;">
-              Project
-              <input id="project" class="input input-bordered" value="{{ project_name }}" disabled />
+              Class label
+              <input id="label" class="input input-bordered" placeholder="e.g. cat" />
             </label>
           </div>
 
-<div class="canvas-wrap" title="Tip: Draw with mouse, drag to move, handles to resize. Space=pan. Delete=remove selected. Ctrl+S=save. (Draw only inside the visible image area)">
-            <img id="image" src="" alt="image" />
-            <canvas id="canvas"></canvas>
+          <div style="display:flex; gap:12px; margin-bottom: 12px;">
+            <button class="btn btn-primary" onclick="saveCurrent()">Save label</button>
+            <button class="btn btn-secondary" onclick="skip()">Skip</button>
+            <button class="btn btn-secondary" onclick="saveAllAndBuildY()">Build y_train/y_test</button>
           </div>
 
-          <div class="btn-row">
-            <button class="btn btn-primary" id="save-btn" type="button">Save annotations</button>
-            <button class="btn btn-secondary" id="delete-btn" type="button">Delete selected</button>
-            <button class="btn btn-secondary" id="prev-btn" type="button" onclick="window.__bbox_prev?.()">Prev</button>
-            <button class="btn btn-secondary" id="next-btn" type="button" onclick="window.__bbox_next?.()">Next</button>
-          </div>
-
-          <div class="result-panel" style="padding:12px; margin-top:12px;">
-            <div style="display:flex; gap:12px; align-items:flex-start;">
+          <div class="result-panel" style="padding: 12px;">
+            <div style="display:flex; gap: 12px; align-items:flex-start;">
+              <div style="width: 340px; flex: 0 0 auto;">
+                <img id="image" src="" alt="image" style="max-width:100%; border-radius: 10px; border: 1px solid #e5e7eb;" />
+              </div>
               <div style="flex:1;">
                 <div><strong id="fileName">-</strong></div>
-                <div style="margin-top:8px;color:#6b7280;">Progress: <span id="progress">-</span></div>
-                <div style="margin-top:10px;color:#6b7280;" id="msg"></div>
+                <div style="margin-top: 8px; color:#6b7280;">Progress: <span id="progress">-</span></div>
+                <div style="margin-top: 10px;">Saved label: <span id="savedLabel">-</span></div>
+                <div style="margin-top: 10px; color:#6b7280;" id="msg"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <aside class="bbox-right">
-          <div class="section-head" style="margin-bottom:12px;">
-            <h2>Annotations</h2>
-            <p>Click Select to edit a box.</p>
+        <aside style="width: 320px;">
+          <div class="section-head" style="margin-bottom: 12px;">
+            <h2>Already labeled</h2>
+            <p id="counts">-</p>
           </div>
-
-          <!-- IMPORTANT: This page is object-detection ONLY. It must not affect classification feature pipelines. -->
-          <div id="annotation-list">Loading…</div>
-
-
-          <div style="margin-top:14px;">
-            <div class="section-head" style="margin-bottom:8px;">
-              <h3>Shortcuts</h3>
-            </div>
-            <ul style="margin:0; padding-left:18px; color: rgba(52,64,84,0.9); line-height:1.6;">
-              <li>Draw: drag mouse</li>
-              <li>Move: drag box</li>
-              <li>Resize: drag corner handles</li>
-              <li>Pan: hold Space</li>
-              <li>Delete: Delete key</li>
-              <li>Save: Ctrl+S</li>
-              <li>Next/Prev image: ← / →</li>
-            </ul>
+          <div style="max-height: 560px; overflow:auto; padding-right: 6px;">
+            <ul id="labeledList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;"></ul>
           </div>
         </aside>
       </section>
     </main>
 
     <script>
-      // Provide helpers for prev/next buttons after JS initializes.
-      window.__bbox_prev = null;
-      window.__bbox_next = null;
+      const splitName = {{ split_name|tojson }};
+      let files = [];
+      let index = 0;
+      let labelingMap = {};
+
+      async function loadState() {
+        const res = await fetch(`/api/labeling/state?split=${encodeURIComponent(splitName)}`);
+        const data = await res.json();
+        files = data.files;
+        labelingMap = data.labels;
+        index = data.next_index;
+        renderCurrent();
+        renderLabeledSidebar();
+      }
+
+      function renderCurrent() {
+        if (!files.length) return;
+        const rel = files[index];
+        const src = `/static/${splitName}/${encodeURIComponent(rel)}`;
+        document.getElementById('image').src = src;
+        document.getElementById('fileName').textContent = rel;
+        document.getElementById('progress').textContent = `${index + 1} / ${files.length}`;
+        const saved = labelingMap[rel] || '';
+        document.getElementById('savedLabel').textContent = saved || '-';
+        document.getElementById('label').value = '';
+        document.getElementById('msg').textContent = '';
+      }
+
+      function renderLabeledSidebar() {
+        const labeledKeys = Object.keys(labelingMap);
+        const labeledCount = labeledKeys.filter(k => (labelingMap[k] || '').trim().length > 0).length;
+        document.getElementById('counts').textContent = `${labeledCount} labeled / ${files.length}`;
+        const ul = document.getElementById('labeledList');
+        ul.innerHTML = '';
+        for (const k of labeledKeys.slice(0, 50)) {
+          const li = document.createElement('li');
+          li.style.border = '1px solid #e5e7eb';
+          li.style.borderRadius = '10px';
+          li.style.padding = '8px 10px';
+          li.style.background = '#fff';
+          li.innerHTML = `<div style="font-size:12px; color:#6b7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 300px;">${k}</div><div style="font-weight:600; margin-top:4px;">${labelingMap[k]}</div>`;
+          ul.appendChild(li);
+        }
+      }
+
+      async function saveCurrent() {
+        const rel = files[index];
+        const label = document.getElementById('label').value.trim();
+        if (!label) {
+          document.getElementById('msg').textContent = 'Enter a label first.';
+          return;
+        }
+        const res = await fetch('/api/labeling/set', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ split: splitName, file: rel, label })
+        });
+        const data = await res.json();
+        document.getElementById('msg').textContent = data.ok ? 'Saved.' : ('Error: ' + data.error);
+        labelingMap[rel] = label;
+        index = data.next_index;
+        renderCurrent();
+        renderLabeledSidebar();
+      }
+
+      function skip() {
+        index = Math.min(index + 1, files.length - 1);
+        renderCurrent();
+      }
+
+      async function saveAllAndBuildY() {
+        const res = await fetch('/api/labeling/build-y', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ split: splitName })
+        });
+        const data = await res.json();
+        document.getElementById('msg').textContent = data.ok ? ('Built: ' + JSON.stringify(data.result)) : ('Error: ' + data.error);
+      }
+
+      loadState().catch(err => {
+        document.getElementById('msg').textContent = 'Failed to load: ' + err;
+      });
     </script>
-    <script>
-      // expose functions to buttons
-      window.__bbox_prev = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); };
-      window.__bbox_next = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); };
-    </script>
-
-
-
-
   </body>
 </html>
-
-
 
