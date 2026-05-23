@@ -934,6 +934,8 @@ def api_get_constraints():
 
 
 # --- ImageLabeler import/open endpoints ---
+# (Removed) bbox labeling-specific ImageLabeler open endpoint; keep UI for basic label-name models only.
+
 @app.post("/api/imagelabeler/open")
 def imagelabeler_open():
     """Open ImageLabeler on the local machine.
@@ -976,7 +978,7 @@ def imagelabeler_open():
 
 # IMPORTANT: Object-detection import MUST NOT be used by the classification pipeline.
 # We keep a detection-only endpoint and keep the classification workflow fully independent.
-@app.post("/api/object-detection/imagelabeler/import")
+@app.post("/api/imagelabeler/import")
 def imagelabeler_import():
     """Import ImageLabeler detection JSONs into the COCO store for object detection only.
 

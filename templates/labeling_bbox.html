@@ -80,28 +80,6 @@
             <button class="btn btn-secondary" id="next-btn" type="button" onclick="window.__bbox_next?.()">Next</button>
           </div>
 
-          <div class="toolbar" style="margin-top:12px;">
-            <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-              <button class="btn btn-secondary" id="open-imagelabeler-btn" type="button">
-                Label with ImageLabeler
-              </button>
-
-              <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn btn-primary" id="import-imagelabeler-btn" type="button" disabled>
-                  Import ImageLabeler labels to COCO
-                </button>
-
-                <div id="imagelabeler-status" style="color:#6b7280; align-self:center;">Ready.</div>
-              </div>
-
-              <p style="margin:0; color:#6b7280; font-size:12px;">
-                This opens the local Qt ImageLabeler app. After labeling, click “Import…” to save labels into COCO.
-              </p>
-            </div>
-          </div>
-
-
-
           <div class="result-panel" style="padding:12px; margin-top:12px;">
             <div style="display:flex; gap:12px; align-items:flex-start;">
               <div style="flex:1;">
@@ -152,48 +130,7 @@
       window.__bbox_next = function() { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); };
     </script>
 
-    <script>
-      window.addEventListener('load', () => {
-        const splitSelect = document.getElementById('split-select');
-        const projectInput = document.getElementById('project');
-        const openBtn = document.getElementById('open-imagelabeler-btn');
-        const importBtn = document.getElementById('import-imagelabeler-btn');
-        const statusEl = document.getElementById('imagelabeler-status');
 
-        const project = (projectInput?.value || 'default').trim();
-        const split = (splitSelect?.value || 'train').trim();
-
-        openBtn?.addEventListener('click', async () => {
-          try {
-            statusEl.textContent = 'Launching ImageLabeler...';
-            importBtn.disabled = true;
-            const res = await fetch(`/api/imagelabeler/open?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error || 'Failed to open ImageLabeler');
-            statusEl.textContent = 'ImageLabeler opened. Label and then click Import.';
-            importBtn.disabled = false;
-          } catch (e) {
-            statusEl.textContent = 'Error: ' + (e?.message || String(e));
-            importBtn.disabled = true;
-          }
-        });
-
-        importBtn?.addEventListener('click', async () => {
-          try {
-            statusEl.textContent = 'Importing labels...';
-            importBtn.disabled = true;
-            const res = await fetch(`/api/object-detection/imagelabeler/import?project=${encodeURIComponent(project)}&split=${encodeURIComponent(split)}`, { method: 'POST' });
-            const data = await res.json();
-            if (!data.ok) throw new Error(data.error || 'Import failed');
-            statusEl.textContent = 'Import complete: ' + (data.imported || 0) + ' labels';
-          } catch (e) {
-            statusEl.textContent = 'Error: ' + (e?.message || String(e));
-          } finally {
-            importBtn.disabled = false;
-          }
-        });
-      });
-    </script>
 
   </body>
 </html>
