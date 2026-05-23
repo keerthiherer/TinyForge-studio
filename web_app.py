@@ -1006,13 +1006,47 @@ def imagelabeler_import():
     if not scan_root.exists():
         return jsonify({"ok": False, "error": "Split directory not found."}), 404
 
+    # Load authoritative class definitions from dataset_split/<split>/labels.json
+    # ImageLabeler generates a global labels.json like: {"labels": [{"id": 1, "label": "sun", ...}, ...]}
+    labels_json_path = _split_dir(payload_split) / "labels.json"
+    if not labels_json_path.is_file():
+        # If labels.json is missing for the selected split, try the other split.
+        other_labels_json_path = _split_dir(other_split) / "labels.json"
+        if other_labels_json_path.is_file():
+            labels_json_path = other_labels_json_path
+        else:
+            return jsonify({"ok": False, "error": f"labels.json not found in dataset_split/{payload_split}/ or dataset_split/{other_split}/"}), 404
+
+    labels_payload = json.loads(labels_json_path.read_text(encoding="utf-8"))
+    labels_list = labels_payload.get("labels", []) if isinstance(labels_payload, dict) else []
+
+    # Build stable mapping: class name -> stable COCO category id.
+    # Also ensures coco has stable categories (by clearing existing categories).
+    class_name_to_cat_id: dict[str, int] = {}
+    stable_categories: list[dict[str, Any]] = []
+    for item in labels_list:
+        try:
+            cid = int(item.get("id"))
+            cname = str(item.get("label")).strip()
+        except Exception:
+            continue
+        if not cname:
+            continue
+        class_name_to_cat_id[cname] = cid
+        stable_categories.append({"id": cid, "name": cname})
+
+    if not stable_categories:
+        return jsonify({"ok": False, "error": "labels.json contained no usable labels."}), 400
+
     # Collect coco and ensure basic structure (write into the selected split)
     coco = _load_coco_file(payload_project, payload_split)
+
+    # Force stable categories based on labels.json.
+    coco["categories"] = list(stable_categories)
 
     # Prepare lookup: existing image entries by file_name
     img_by_file = {str(img.get("file_name")): img for img in coco.get("images", []) if "file_name" in img}
 
-    # Ensure categories from imported labels; we'll add dynamically.
     updated = 0
 
     from PIL import Image as PILImage
@@ -1108,7 +1142,11 @@ def imagelabeler_import():
                 if w <= 1 or h <= 1:
                     continue
 
-                category_id, _ = _ensure_category(coco, label)
+                # Map annotation label to stable category id using labels.json.
+                # If label not found in labels.json, skip this annotation.
+                if label not in class_name_to_cat_id:
+                    continue
+                category_id = int(class_name_to_cat_id[label])
 
                 # Build bbox in COCO top-left xywh
                 bbox = [float(left), float(top), float(w), float(h)]
