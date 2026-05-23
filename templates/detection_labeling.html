@@ -60,23 +60,7 @@
             <div class="muted" id="yoloStatus"></div>
           </div>
 
-          <div class="box">
-            <h2 style="margin-top:0;">2) Train YOLO</h2>
-            <div class="row">
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Dataset folder
-                <input id="dataset_dir_yolo" class="input input-bordered" value="dataset_split" />
-              </label>
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Run name
-                <input id="run_name_yolo" class="input input-bordered" value="iotml-yolo" />
-              </label>
-            </div>
-            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
-              <button class="btn btn-primary" onclick="train('train-object-detection-yolo')">Train YOLO</button>
-            </div>
-            <div class="muted" id="yoloTrainStatus"></div>
-          </div>
+
         </div>
       </section>
 
@@ -105,23 +89,7 @@
             <div class="muted" id="rcnnStatus"></div>
           </div>
 
-          <div class="box">
-            <h2 style="margin-top:0;">2) Prepare Faster R-CNN</h2>
-            <div class="row">
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Dataset folder
-                <input id="dataset_dir_rcnn" class="input input-bordered" value="dataset_split" />
-              </label>
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Output model
-                <input id="output_model_rcnn" class="input input-bordered" value="fasterrcnn_detector.pth" />
-              </label>
-            </div>
-            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
-              <button class="btn btn-primary" onclick="train('train-object-detection-faster-rcnn')">Prepare Faster R-CNN</button>
-            </div>
-            <div class="muted" id="rcnnTrainStatus"></div>
-          </div>
+
         </div>
       </section>
 
@@ -150,23 +118,7 @@
             <div class="muted" id="ssdStatus"></div>
           </div>
 
-          <div class="box">
-            <h2 style="margin-top:0;">2) Prepare SSD</h2>
-            <div class="row">
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Dataset folder
-                <input id="dataset_dir_ssd" class="input input-bordered" value="dataset_split" />
-              </label>
-              <label style="display:flex; flex-direction:column; gap:6px;">
-                Output model
-                <input id="output_model_ssd" class="input input-bordered" value="ssd_detector.pth" />
-              </label>
-            </div>
-            <div style="margin-top: 12px; display:flex; gap:12px; flex-wrap:wrap;">
-              <button class="btn btn-primary" onclick="train('train-object-detection-ssd')">Prepare SSD</button>
-            </div>
-            <div class="muted" id="ssdTrainStatus"></div>
-          </div>
+
         </div>
       </section>
     </main>
