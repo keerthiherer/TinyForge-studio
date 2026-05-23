@@ -1,9 +1,7 @@
 path: C:/Users/fx506hf/Downloads/vac/iotml/dataset_split/yolo_auto
 train: images/train
 val: images/val
-nc: 4
+nc: 2
 names:
-  0: hib
+  0: sun
   1: rose
-  2: rosse
-  3: sun
