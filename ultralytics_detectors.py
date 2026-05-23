@@ -335,7 +335,7 @@ def _load_coco_detections_for_dataset(dataset_dir: str | Path) -> tuple[dict[str
     return coco_train, coco_test, str(project_guess)
 
 
-class _CocoDetectionDataset(torch.utils.data.Dataset):
+class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
     """Minimal COCO bbox dataset for torchvision detection models."""
 
     def __init__(self, coco: dict[str, Any], images_root: Path, transforms=None) -> None:
