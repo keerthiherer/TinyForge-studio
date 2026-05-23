@@ -302,6 +302,123 @@ def train_yolo(
         return TrainResult(ok=False, error=str(e)).to_dict()
 
 
+def _load_coco_detections_for_dataset(dataset_dir: str | Path) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """Load coco_train/coco_test for the selected project.
+
+    The Flask UI passes dataset_dir like:
+      dataset_split/  (legacy) OR dataset_split/<project>/ (if used)
+
+    In this repo, COCO JSONs are stored at:
+      coco_store/<project_guess>/coco_train.json
+      coco_store/<project_guess>/coco_test.json
+
+    We infer <project_guess> from dataset_dir.parent.name when possible.
+    """
+    dataset_dir = _require_dir(dataset_dir, "dataset_dir")
+    repo_root = dataset_dir.resolve().parent
+    project_guess = dataset_dir.parent.name if dataset_dir.parent.name else "default"
+
+    coco_store_dir = repo_root / "coco_store" / project_guess
+    coco_train_path = coco_store_dir / "coco_train.json"
+    coco_test_path = coco_store_dir / "coco_test.json"
+
+    if not coco_train_path.is_file() or not coco_test_path.is_file():
+        raise FileNotFoundError(
+            f"Missing COCO files for project '{project_guess}'. Expected: {coco_train_path} and {coco_test_path}"
+        )
+
+    coco_train = json.loads(coco_train_path.read_text(encoding="utf-8"))
+    coco_test = json.loads(coco_test_path.read_text(encoding="utf-8"))
+    if not isinstance(coco_train, dict) or not isinstance(coco_test, dict):
+        raise ValueError("COCO JSONs must be dict root objects")
+
+    return coco_train, coco_test, str(project_guess)
+
+
+class _CocoDetectionDataset(torch.utils.data.Dataset):
+    """Minimal COCO bbox dataset for torchvision detection models."""
+
+    def __init__(self, coco: dict[str, Any], images_root: Path, transforms=None) -> None:
+        super().__init__()
+        self.coco = coco
+        self.images_root = images_root
+        self.transforms = transforms
+
+        self.images = coco.get("images", []) or []
+        self.id_to_image = {int(img["id"]): img for img in self.images if "id" in img}
+
+        # index anns by image_id
+        anns = coco.get("annotations", []) or []
+        self.anns_by_image_id: dict[int, list[dict[str, Any]]] = {}
+        for ann in anns:
+            try:
+                img_id = int(ann.get("image_id"))
+            except Exception:
+                continue
+            self.anns_by_image_id.setdefault(img_id, []).append(ann)
+
+    def __len__(self) -> int:
+        return len(self.images)
+
+    def __getitem__(self, idx: int):
+        img_entry = self.images[idx]
+        img_id = int(img_entry["id"])
+        file_name = str(img_entry.get("file_name"))
+        img_path = self.images_root / Path(file_name)
+        if not img_path.is_file():
+            raise FileNotFoundError(f"Image not found: {img_path}")
+
+        from PIL import Image as PILImage
+        image = PILImage.open(img_path).convert("RGB")
+
+        # Prepare target dict
+        anns = self.anns_by_image_id.get(img_id, [])
+        boxes = []
+        labels = []
+        areas = []
+        iscrowd = []
+
+        for ann in anns:
+            bbox = ann.get("bbox")
+            if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                continue
+            x, y, w, h = bbox
+            x = float(x); y = float(y); w = float(w); h = float(h)
+            if w <= 0 or h <= 0:
+                continue
+            # torchvision expects boxes in xyxy
+            boxes.append([x, y, x + w, y + h])
+            labels.append(int(ann.get("category_id")))
+            areas.append(float(w * h))
+            iscrowd.append(int(ann.get("iscrowd", 0)))
+
+        boxes_t = torch.tensor(boxes, dtype=torch.float32)
+        labels_t = torch.tensor(labels, dtype=torch.int64)
+        image_id_t = torch.tensor([img_id], dtype=torch.int64)
+        areas_t = torch.tensor(areas, dtype=torch.float32)
+        iscrowd_t = torch.tensor(iscrowd, dtype=torch.int64)
+
+        target: dict[str, Any] = {
+            "boxes": boxes_t,
+            "labels": labels_t,
+            "image_id": image_id_t,
+            "area": areas_t,
+            "iscrowd": iscrowd_t,
+        }
+
+        if self.transforms is not None:
+            image = self.transforms(image)
+        else:
+            from torchvision.transforms import functional as F
+            image = F.to_tensor(image)
+
+        return image, target
+
+
+def _collate_fn(batch):
+    return tuple(zip(*batch))
+
+
 def train_faster_rcnn(
     dataset_dir: str | Path,
     epochs: int = 10,
@@ -309,35 +426,76 @@ def train_faster_rcnn(
     device: str = "cpu",
     output_model: str | Path = "fasterrcnn_detector.pth",
 ) -> Dict[str, Any]:
-    """Train Faster R-CNN via torchvision.
-
-    For simplicity this is a stub integration.
-    Full detection training requires COCO/VOC style datasets + loaders.
-    """
+    """Train Faster R-CNN via torchvision using COCO bbox annotations."""
     dataset_dir = _require_dir(dataset_dir, "dataset_dir")
 
     try:
         import torch
         from torchvision.models.detection import fasterrcnn_resnet50_fpn
-        # Real training requires dataset class + transforms.
-        # We keep this as a placeholder to unblock pipeline wiring.
+        from torch.utils.data import DataLoader
+
+        coco_train, coco_test, project_name = _load_coco_detections_for_dataset(dataset_dir)
+
+        # dataset_split contains both train/test images; COCO images point into that.
+        # We'll try dataset_split/<split>/file_name resolution first.
+        # For COCO import used by this repo, file_name is typically basename.
+        repo_root = dataset_dir.resolve().parent
+        images_train_root = repo_root / "dataset_split" / "train"
+        images_test_root = repo_root / "dataset_split" / "test"
+
+        ds_train = _CocoDetectionDataset(coco_train, images_train_root)
+        ds_test = _CocoDetectionDataset(coco_test, images_test_root)
+
         model = fasterrcnn_resnet50_fpn(weights=None, weights_backbone=None, num_classes=num_classes)
         model.to(device)
 
-        # Save untrained/partially trained weights (placeholder)
+        params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+
+        # a lightweight scheduler
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+        # torchvision detection models require custom collate
+        batch_size = 2
+        dl_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True, num_workers=0, collate_fn=_collate_fn)
+
+        model.train()
+        for epoch in range(1, epochs + 1):
+            lr_scheduler.step()
+            epoch_loss = 0.0
+            for images, targets in dl_train:
+                images = [img.to(device) for img in images]
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+                loss_dict = model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
+
+                optimizer.zero_grad()
+                losses.backward()
+                optimizer.step()
+
+                epoch_loss += float(losses.detach().cpu())
+
+            # best-effort: report average loss
+            avg_loss = epoch_loss / max(1, len(dl_train))
+
         out_path = Path(output_model)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), out_path)
+
         return TrainResult(
             ok=True,
             model_path=str(out_path),
             metrics={"epochs": epochs, "num_classes_including_background": num_classes},
             logs={
-                "dataset_dir": str(dataset_dir),
-                "training_status": "stub",
-                "note": "Initialized and saved a Faster R-CNN detector. Add a detection annotation loader for real training.",
+                "project": project_name,
+                "training_status": "real",
+                "dataset_images_train": len(ds_train),
+                "dataset_images_test": len(ds_test),
+                "loss_scheduler": "StepLR",
             },
         ).to_dict()
+
     except Exception as e:
         return TrainResult(ok=False, error=str(e)).to_dict()
 
@@ -349,32 +507,70 @@ def train_ssd(
     device: str = "cpu",
     output_model: str | Path = "ssd_detector.pth",
 ) -> Dict[str, Any]:
-    """Train SSD via torchvision.
-
-    This is a stub integration similar to faster_rcnn.
-    """
+    """Train SSD via torchvision using COCO bbox annotations."""
     dataset_dir = _require_dir(dataset_dir, "dataset_dir")
 
     try:
         import torch
         from torchvision.models.detection import ssdlite320_mobilenet_v3_large
+        from torch.utils.data import DataLoader
+
+        coco_train, coco_test, project_name = _load_coco_detections_for_dataset(dataset_dir)
+
+        repo_root = dataset_dir.resolve().parent
+        images_train_root = repo_root / "dataset_split" / "train"
+        images_test_root = repo_root / "dataset_split" / "test"
+
+        ds_train = _CocoDetectionDataset(coco_train, images_train_root)
+        ds_test = _CocoDetectionDataset(coco_test, images_test_root)
 
         model = ssdlite320_mobilenet_v3_large(weights=None, weights_backbone=None, num_classes=num_classes)
         model.to(device)
 
+        params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
+
+        batch_size = 2
+        dl_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True, num_workers=0, collate_fn=_collate_fn)
+
+        model.train()
+        for epoch in range(1, epochs + 1):
+            lr_scheduler.step()
+            epoch_loss = 0.0
+            for images, targets in dl_train:
+                images = [img.to(device) for img in images]
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+                loss_dict = model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
+
+                optimizer.zero_grad()
+                losses.backward()
+                optimizer.step()
+
+                epoch_loss += float(losses.detach().cpu())
+
+            _avg_loss = epoch_loss / max(1, len(dl_train))
+
         out_path = Path(output_model)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), out_path)
+
         return TrainResult(
             ok=True,
             model_path=str(out_path),
             metrics={"epochs": epochs, "num_classes_including_background": num_classes},
             logs={
-                "dataset_dir": str(dataset_dir),
-                "training_status": "stub",
-                "note": "Initialized and saved an SSD detector. Add a detection annotation loader for real training.",
+                "project": project_name,
+                "training_status": "real",
+                "dataset_images_train": len(ds_train),
+                "dataset_images_test": len(ds_test),
+                "loss_scheduler": "StepLR",
             },
         ).to_dict()
+
     except Exception as e:
         return TrainResult(ok=False, error=str(e)).to_dict()
+
 
