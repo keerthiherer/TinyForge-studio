@@ -96,9 +96,13 @@
 
 function getImageSrc() {
     // Images are served from unified dataset folders on the backend.
+    // In this repo, the Flask route is:
+    //   /datasets/<project>/images/<path>
+    // where <path> must be relative (usually basename from COCO file_name).
     const rel = state.activeImageKey;
     return `/datasets/${encodeURIComponent(state.project)}/images/${encodeURIComponent(rel)}`;
   }
+
 
 
   function ensureCanvasSizeToImage() {
