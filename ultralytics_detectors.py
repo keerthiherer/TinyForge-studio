@@ -390,7 +390,11 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
                 continue
             # torchvision expects boxes in xyxy
             boxes.append([x, y, x + w, y + h])
-            labels.append(int(ann.get("category_id")))
+            cid = int(ann.get("category_id"))
+            # torchvision detection expects labels in [0, num_classes-1]
+            if cid < 0:
+                cid = 0
+            labels.append(cid)
             areas.append(float(w * h))
             iscrowd.append(int(ann.get("iscrowd", 0)))
 
