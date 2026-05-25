@@ -503,7 +503,9 @@ def train_faster_rcnn(
         for epoch in range(1, epochs + 1):
             lr_scheduler.step()
             epoch_loss = 0.0
+
             for images, targets in dl_train:
+
                 images = [img.to(device_actual) for img in images]
                 targets = [{k: v.to(device_actual) for k, v in t.items()} for t in targets]
 
