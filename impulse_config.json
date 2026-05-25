@@ -1,0 +1,13 @@
+{
+  "data_type": "image",
+  "classifier": "YOLO",
+  "input_shape": "64x64x1",
+  "preprocessing": [
+    "resize",
+    "normalize"
+  ],
+  "feature_extraction": [
+    "object detection labels",
+    "bounding boxes"
+  ]
+}

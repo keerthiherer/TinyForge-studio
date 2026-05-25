@@ -314,15 +314,19 @@ def _load_coco_detections_for_dataset(dataset_dir: str | Path) -> tuple[dict[str
       coco_store/<project_guess>/coco_train.json
       coco_store/<project_guess>/coco_test.json
 
-    We infer <project_guess> from dataset_dir.parent.name when possible.
+    The COCO JSONs must be loaded from an explicit project folder.
+    web_app.py passes dataset_dir like dataset_split/ (legacy) or dataset_split/train (legacy),
+    so we derive the repo root from dataset_dir and default to 'default' only if the
+    caller does not supply a project name.
     """
     dataset_dir = _require_dir(dataset_dir, "dataset_dir")
     repo_root = dataset_dir.resolve().parent
-    project_guess = dataset_dir.parent.name if dataset_dir.parent.name else "default"
+    project_guess = "default"
 
     coco_store_dir = repo_root / "coco_store" / project_guess
     coco_train_path = coco_store_dir / "coco_train.json"
     coco_test_path = coco_store_dir / "coco_test.json"
+
 
     if not coco_train_path.is_file() or not coco_test_path.is_file():
         raise FileNotFoundError(
@@ -460,8 +464,14 @@ def train_faster_rcnn(
         from torchvision.models.detection import fasterrcnn_resnet50_fpn
         from torch.utils.data import DataLoader
 
+        device_str = str(device)
+        try:
+            device_actual = "cuda" if torch.cuda.is_available() and ("cuda" in device_str or device_str == "gpu") else "cpu"
+        except Exception:
+            device_actual = device_str
 
         coco_train, coco_test, project_name = _load_coco_detections_for_dataset(dataset_dir)
+
 
         # dataset_split contains both train/test images; COCO images point into that.
         # We'll try dataset_split/<split>/file_name resolution first.
@@ -474,7 +484,8 @@ def train_faster_rcnn(
         ds_test = _CocoDetectionDataset(coco_test, images_test_root)
 
         model = fasterrcnn_resnet50_fpn(weights=None, weights_backbone=None, num_classes=num_classes)
-        model.to(device)
+        model.to(device_actual)
+
 
         params = [p for p in model.parameters() if p.requires_grad]
         optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
@@ -483,18 +494,21 @@ def train_faster_rcnn(
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
         # torchvision detection models require custom collate
-        batch_size = 2
+        # Faster R-CNN is memory-hungry; batch_size=1 is much more stable on smaller GPUs.
+        batch_size = 1
         dl_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True, num_workers=0, collate_fn=_collate_fn)
+
 
         model.train()
         for epoch in range(1, epochs + 1):
             lr_scheduler.step()
             epoch_loss = 0.0
             for images, targets in dl_train:
-                images = [img.to(device) for img in images]
-                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                images = [img.to(device_actual) for img in images]
+                targets = [{k: v.to(device_actual) for k, v in t.items()} for t in targets]
 
                 loss_dict = model(images, targets)
+
                 losses = sum(loss for loss in loss_dict.values())
 
                 optimizer.zero_grad()
@@ -552,7 +566,13 @@ def train_ssd(
         ds_test = _CocoDetectionDataset(coco_test, images_test_root)
 
         model = ssdlite320_mobilenet_v3_large(weights=None, weights_backbone=None, num_classes=num_classes)
-        model.to(device)
+        device_str = str(device)
+        try:
+            device_actual = "cuda" if torch.cuda.is_available() and ("cuda" in device_str or device_str == "gpu") else "cpu"
+        except Exception:
+            device_actual = device_str
+        model.to(device_actual)
+
 
         params = [p for p in model.parameters() if p.requires_grad]
         optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)

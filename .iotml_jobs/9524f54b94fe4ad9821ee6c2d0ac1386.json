@@ -1,0 +1,107 @@
+{
+  "id": "9524f54b94fe4ad9821ee6c2d0ac1386",
+  "action": "train-object-detection-faster-rcnn",
+  "status": "running",
+  "ok": null,
+  "logs": [
+    "[16:43:36] job> Queued action: train-object-detection-faster-rcnn",
+    "[16:43:36] job> Starting action: train-object-detection-faster-rcnn",
+    "[16:43:40] stderr> C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\optim\\lr_scheduler.py:182: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate",
+    "[16:43:40] stderr>   warnings.warn(",
+    "[17:09:21] stderr> Traceback (most recent call last):",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\web_app.py\", line 1936, in <module>",
+    "[17:09:21] stderr>     app.run(debug=True, use_reloader=False, host=\"127.0.0.1\", port=5000)",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\flask\\app.py\", line 662, in run",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\werkzeug\\serving.py\", line 1125, in run_simple",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\werkzeug\\serving.py\", line 823, in serve_forever",
+    "[17:09:21] stderr>     self.server_close()",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\socketserver.py\", line 700, in server_close",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\socketserver.py\", line 483, in server_close",
+    "[17:09:21] stderr>     self.socket.close()",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\socket.py\", line 502, in close",
+    "[17:09:21] stderr>     self._real_close()",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\socket.py\", line 496, in _real_close",
+    "[17:09:21] stderr>     _ss.close(self)",
+    "[17:09:21] stderr> KeyboardInterrupt",
+    "[17:09:21] stderr> Exception ignored in atexit callback: <function dump_cache_stats at 0x00000242E584FBE0>",
+    "[17:09:21] stderr> Traceback (most recent call last):",
+    "[17:09:21] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\_inductor\\remote_cache.py\", line 401, in dump_cache_stats",
+    "[17:09:22] stderr>     @atexit.register",
+    "[17:09:22] stderr> KeyboardInterrupt:",
+    "[17:09:22] stderr> Exception ignored in atexit callback: <function dump_compile_times at 0x00000242E54B2B90>",
+    "[17:09:22] stderr> Traceback (most recent call last):",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\_dynamo\\utils.py\", line 765, in dump_compile_times",
+    "[17:09:22] stderr>     log.info(compile_times(repr=\"str\", aggregate=True))",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\_dynamo\\utils.py\", line 751, in compile_times",
+    "[17:09:22] stderr>     out += tabulate(rows, headers=(\"Function\", \"Runtimes (s)\"))",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\_dynamo\\utils.py\", line 217, in tabulate",
+    "[17:09:22] stderr>     import tabulate",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap>\", line 1027, in _find_and_load",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap>\", line 1002, in _find_and_load_unlocked",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap>\", line 945, in _find_spec",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap_external>\", line 1439, in find_spec",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap_external>\", line 1411, in _get_spec",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap_external>\", line 1544, in find_spec",
+    "[17:09:22] stderr>   File \"<frozen importlib._bootstrap_external>\", line 147, in _path_stat",
+    "[17:09:22] stderr> KeyboardInterrupt:",
+    "[17:09:22] stderr> Exception ignored in atexit callback: <bound method finalize._exitfunc of <class 'weakref.finalize'>>",
+    "[17:09:22] stderr> Traceback (most recent call last):",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\weakref.py\", line 667, in _exitfunc",
+    "[17:09:22] stderr>     f()",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\weakref.py\", line 591, in __call__",
+    "[17:09:22] stderr>     return info.func(*info.args, **(info.kwargs or {}))",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\library.py\", line 449, in _del_library",
+    "[17:09:22] stderr>     handle.destroy()",
+    "[17:09:22] stderr>   File \"C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\_library\\utils.py\", line 41, in destroy",
+    "[17:09:22] stderr>     def destroy(self) -> None:",
+    "[17:09:22] stderr> KeyboardInterrupt:"
+  ],
+  "created_at": "2026-05-23T16:43:36",
+  "artifacts": {
+    "train_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+    },
+    "test_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+    },
+    "y_train.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+    },
+    "y_test.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+    },
+    "iot_model.pkl": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+    },
+    "model_diagnostics_report.json": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+    },
+    "model_predictions.csv": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+    },
+    "deployment_package": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+    },
+    "runs": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+    },
+    "fasterrcnn_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+    },
+    "ssd_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+    }
+  },
+  "started_at": "2026-05-23T16:43:36"
+}

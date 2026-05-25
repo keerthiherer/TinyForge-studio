@@ -1,0 +1,63 @@
+{
+  "id": "6ebc261e292f4dfc98de42461369b945",
+  "action": "train-object-detection-faster-rcnn",
+  "status": "error",
+  "ok": false,
+  "logs": [
+    "[14:49:48] job> Queued action: train-object-detection-faster-rcnn",
+    "[14:49:48] job> Starting action: train-object-detection-faster-rcnn",
+    "[14:49:50] stderr> C:\\Users\\fx506hf\\AppData\\Local\\Programs\\Python\\Python310\\lib\\site-packages\\torch\\optim\\lr_scheduler.py:182: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate",
+    "[14:49:50] stderr>   warnings.warn(",
+    "[14:49:50] error> Error: name 'torch' is not defined"
+  ],
+  "created_at": "2026-05-23T14:49:48",
+  "artifacts": {
+    "train_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+    },
+    "test_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+    },
+    "y_train.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+    },
+    "y_test.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+    },
+    "iot_model.pkl": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+    },
+    "model_diagnostics_report.json": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+    },
+    "model_predictions.csv": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+    },
+    "deployment_package": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+    },
+    "runs": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+    },
+    "fasterrcnn_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+    },
+    "ssd_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+    }
+  },
+  "started_at": "2026-05-23T14:49:48",
+  "error": "name 'torch' is not defined",
+  "finished_at": "2026-05-23T14:49:50"
+}

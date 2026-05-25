@@ -1,0 +1,61 @@
+{
+  "id": "585a232877044a13adc32a26f504cf0e",
+  "action": "train-object-detection-faster-rcnn",
+  "status": "error",
+  "ok": false,
+  "logs": [
+    "[14:51:26] job> Queued action: train-object-detection-faster-rcnn",
+    "[14:51:26] job> Starting action: train-object-detection-faster-rcnn",
+    "[14:51:26] error> Error: name 'torch' is not defined"
+  ],
+  "created_at": "2026-05-23T14:51:26",
+  "artifacts": {
+    "train_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+    },
+    "test_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+    },
+    "y_train.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+    },
+    "y_test.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+    },
+    "iot_model.pkl": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+    },
+    "model_diagnostics_report.json": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+    },
+    "model_predictions.csv": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+    },
+    "deployment_package": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+    },
+    "runs": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+    },
+    "fasterrcnn_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+    },
+    "ssd_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+    }
+  },
+  "started_at": "2026-05-23T14:51:26",
+  "error": "name 'torch' is not defined",
+  "finished_at": "2026-05-23T14:51:26"
+}

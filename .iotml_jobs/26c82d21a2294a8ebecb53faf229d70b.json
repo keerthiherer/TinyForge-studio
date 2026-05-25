@@ -1,0 +1,126 @@
+{
+  "id": "26c82d21a2294a8ebecb53faf229d70b",
+  "action": "create-impulse",
+  "status": "complete",
+  "ok": true,
+  "logs": [
+    "[11:53:40] job> Queued action: create-impulse",
+    "[11:53:40] job> Starting action: create-impulse",
+    "[11:53:40] job> Finished action: create-impulse"
+  ],
+  "created_at": "2026-05-23T11:53:40",
+  "artifacts": {
+    "train_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+    },
+    "test_features.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+    },
+    "y_train.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+    },
+    "y_test.npy": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+    },
+    "iot_model.pkl": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+    },
+    "model_diagnostics_report.json": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+    },
+    "model_predictions.csv": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+    },
+    "deployment_package": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+    },
+    "runs": {
+      "exists": true,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+    },
+    "fasterrcnn_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+    },
+    "ssd_detector.pth": {
+      "exists": false,
+      "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+    }
+  },
+  "started_at": "2026-05-23T11:53:40",
+  "result": {
+    "ok": true,
+    "result": {
+      "message": "Impulse configuration saved.",
+      "output_file": "impulse_config.json",
+      "impulse": {
+        "data_type": "image",
+        "classifier": "YOLO",
+        "input_shape": "64x64x1",
+        "preprocessing": [
+          "resize",
+          "normalize"
+        ],
+        "feature_extraction": [
+          "object detection labels",
+          "bounding boxes"
+        ]
+      }
+    },
+    "artifacts": {
+      "train_features.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\train_features.npy"
+      },
+      "test_features.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\test_features.npy"
+      },
+      "y_train.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_train.npy"
+      },
+      "y_test.npy": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\y_test.npy"
+      },
+      "iot_model.pkl": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\iot_model.pkl"
+      },
+      "model_diagnostics_report.json": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_diagnostics_report.json"
+      },
+      "model_predictions.csv": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\model_predictions.csv"
+      },
+      "deployment_package": {
+        "exists": true,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\deployment_package"
+      },
+      "runs": {
+        "exists": true,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\runs"
+      },
+      "fasterrcnn_detector.pth": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\fasterrcnn_detector.pth"
+      },
+      "ssd_detector.pth": {
+        "exists": false,
+        "path": "C:\\Users\\fx506hf\\Downloads\\vac\\iotml\\ssd_detector.pth"
+      }
+    }
+  },
+  "finished_at": "2026-05-23T11:53:40"
+}
