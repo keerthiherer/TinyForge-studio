@@ -157,7 +157,7 @@ def detect_torchvision_detector(
     image_path: str | Path,
     output_path: str | Path,
     confidence: float = 0.25,
-    num_classes: int = 2,
+    num_classes: int = 3,
     device: str = "cpu",
     class_names: Optional[list[str]] = None,
 ) -> Dict[str, Any]:
@@ -363,16 +363,20 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
                 continue
             self.anns_by_image_id.setdefault(img_id, []).append(ann)
 
-        # Normalize COCO category_id -> contiguous label ids for torchvision.
-        # torchvision detection models expect labels in [0, num_classes-1]
-        # where labels are foreground classes only (background is implicit).
+        # Normalize COCO category_id -> contiguous foreground labels for torchvision.
+        # Torchvision detection uses:
+        #   - model head configured with `num_classes`
+        #   - target['labels'] values in [0, num_classes-1]
+        #   - typically background is handled implicitly by torchvision losses,
+        #     so we map foreground classes to [1..N] and set num_classes = N+1.
         cats = coco.get("categories", []) or []
-        cat_ids = []
+        cat_ids: list[int] = []
         for c in cats:
             try:
                 cat_ids.append(int(c.get("id")))
             except Exception:
                 pass
+
         # Fallback: infer unique ids from annotations.
         if not cat_ids:
             for ann in anns:
@@ -382,7 +386,23 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
                     continue
             cat_ids = sorted(set(cat_ids))
 
-        self.category_id_to_label: dict[int, int] = {cid: i for i, cid in enumerate(sorted(set(cat_ids)))}
+        sorted_ids = sorted(set(cat_ids))
+
+        # Foreground labels must be contiguous.
+        # background index is 0; foreground labels start at 1.
+        self.category_id_to_label: dict[int, int] = {cid: i + 1 for i, cid in enumerate(sorted_ids)}
+        self.sorted_category_ids: list[int] = sorted_ids
+
+        # Debug info (needed to verify label space)
+        try:
+            print("[DEBUG] dataset categories(sorted_ids)=", self.sorted_category_ids)
+            print("[DEBUG] dataset mapping(category_id_to_label)=", self.category_id_to_label)
+            max_mapped = max(self.category_id_to_label.values()) if self.category_id_to_label else 0
+            derived_num_classes = int(max_mapped) + 1
+            print("[DEBUG] dataset derived_num_classes(num_classes)=", derived_num_classes)
+        except Exception:
+            pass
+
 
     def __len__(self) -> int:
         return len(self.images)
@@ -422,11 +442,17 @@ class _CocoDetectionDataset(__import__("torch").utils.data.Dataset):
             iscrowd.append(int(ann.get("iscrowd", 0)))
 
         t = __import__("torch")
-        boxes_t = t.tensor(boxes, dtype=t.float32)
-        labels_t = t.tensor(labels, dtype=t.int64)
+        if len(boxes) == 0:
+            boxes_t = t.zeros((0, 4), dtype=t.float32)
+            labels_t = t.zeros((0,), dtype=t.int64)
+            areas_t = t.zeros((0,), dtype=t.float32)
+            iscrowd_t = t.zeros((0,), dtype=t.int64)
+        else:
+            boxes_t = t.tensor(boxes, dtype=t.float32)
+            labels_t = t.tensor(labels, dtype=t.int64)
+            areas_t = t.tensor(areas, dtype=t.float32)
+            iscrowd_t = t.tensor(iscrowd, dtype=t.int64)
         image_id_t = t.tensor([img_id], dtype=t.int64)
-        areas_t = t.tensor(areas, dtype=t.float32)
-        iscrowd_t = t.tensor(iscrowd, dtype=t.int64)
 
         target: dict[str, Any] = {
             "boxes": boxes_t,
@@ -483,8 +509,15 @@ def train_faster_rcnn(
         ds_train = _CocoDetectionDataset(coco_train, images_train_root)
         ds_test = _CocoDetectionDataset(coco_test, images_test_root)
 
-        model = fasterrcnn_resnet50_fpn(weights=None, weights_backbone=None, num_classes=num_classes)
+        # Auto-derive num_classes from dataset mapping to guarantee predictor head matches label space.
+        # With background index 0 implicit, and foreground mapped to [1..N], num_classes should be N+1.
+        inferred_num_classes = int(max(ds_train.category_id_to_label.values()) if ds_train.category_id_to_label else 0) + 1
+        print("[DEBUG] FasterRCNN inferred_num_classes=", inferred_num_classes)
+
+        # Fix: explicitly build head with correct num_classes.
+        model = fasterrcnn_resnet50_fpn(weights=None, weights_backbone=None, num_classes=inferred_num_classes)
         model.to(device_actual)
+
 
 
         params = [p for p in model.parameters() if p.requires_grad]
@@ -501,7 +534,7 @@ def train_faster_rcnn(
 
         model.train()
         for epoch in range(1, epochs + 1):
-            lr_scheduler.step()
+            #lr_scheduler.step()
             epoch_loss = 0.0
 
             for images, targets in dl_train:
@@ -520,7 +553,12 @@ def train_faster_rcnn(
                 epoch_loss += float(losses.detach().cpu())
 
             # best-effort: report average loss
+            lr_scheduler.step()
             avg_loss = epoch_loss / max(1, len(dl_train))
+            print(
+    f"[FasterRCNN] Epoch {epoch}/{epochs} "
+    f"Loss: {avg_loss:.4f}"
+)
 
         out_path = Path(output_model)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -567,7 +605,11 @@ def train_ssd(
         ds_train = _CocoDetectionDataset(coco_train, images_train_root)
         ds_test = _CocoDetectionDataset(coco_test, images_test_root)
 
-        model = ssdlite320_mobilenet_v3_large(weights=None, weights_backbone=None, num_classes=num_classes)
+        # Auto-derive num_classes from dataset mapping to guarantee predictor head matches label space.
+        inferred_num_classes = int(max(ds_train.category_id_to_label.values()) if ds_train.category_id_to_label else 0) + 1
+        print("[DEBUG] SSD inferred_num_classes=", inferred_num_classes)
+        model = ssdlite320_mobilenet_v3_large(weights=None, weights_backbone=None, num_classes=inferred_num_classes)
+
         device_str = str(device)
         try:
             device_actual = "cuda" if torch.cuda.is_available() and ("cuda" in device_str or device_str == "gpu") else "cpu"
@@ -585,11 +627,18 @@ def train_ssd(
 
         model.train()
         for epoch in range(1, epochs + 1):
-            lr_scheduler.step()
+            #lr_scheduler.step()
             epoch_loss = 0.0
             for images, targets in dl_train:
-                images = [img.to(device) for img in images]
-                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                images = [img.to(device_actual) for img in images]
+
+                targets = [
+                    {
+                        k: v.to(device_actual)
+                        for k, v in t.items()
+                    }
+                    for t in targets
+                ]
 
                 loss_dict = model(images, targets)
                 losses = sum(loss for loss in loss_dict.values())
@@ -599,8 +648,13 @@ def train_ssd(
                 optimizer.step()
 
                 epoch_loss += float(losses.detach().cpu())
+            lr_scheduler.step()
 
             _avg_loss = epoch_loss / max(1, len(dl_train))
+            print(
+    f"[SSD] Epoch {epoch}/{epochs} "
+    f"Loss: {_avg_loss:.4f}"
+)
 
         out_path = Path(output_model)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -621,5 +675,3 @@ def train_ssd(
 
     except Exception as e:
         return TrainResult(ok=False, error=str(e)).to_dict()
-
-
